@@ -191,9 +191,11 @@
 
                     if (!response.ok) {
                         const errorText = await response.text();
+                        // Throw error for non-200 HTTP codes
                         throw new Error(`API returned status ${response.status}: ${errorText}`);
                     }
 
+                    // Return the parsed JSON response object
                     return await response.json();
 
                 } catch (error) {
@@ -205,7 +207,8 @@
                         await new Promise(resolve => setTimeout(resolve, delay));
                         updateMessage('error', `Request failed. Retrying in ${Math.round(delay / 1000)}s...`);
                     } else {
-                        throw new Error(`Failed to process request after ${maxAttempts} attempts. Check console for details.`);
+                        // Re-throw the original error on final failure
+                        throw error;
                     }
                 }
             }
@@ -281,7 +284,15 @@
 
             try {
                 const response = await apiCall('upload_and_critique', { resumeText });
-                appState.critiqueData = JSON.parse(response.body); // Lambda returns a JSON string inside the 'body' property
+                
+                // CRITICAL FIX: Ensure 'body' exists before parsing its content.
+                if (!response || typeof response.body !== 'string') {
+                    const receivedPayload = JSON.stringify(response, null, 2);
+                    throw new Error(`Invalid API response structure. Expected 'body' string, received: ${receivedPayload}`);
+                }
+
+                // Lambda returns a JSON string inside the 'body' property, so we parse it again.
+                appState.critiqueData = JSON.parse(response.body); 
 
                 // Save key data globally
                 appState.vocation = appState.critiqueData.vocation;
@@ -395,6 +406,13 @@
 
             try {
                 const response = await apiCall('remediate_and_preview', remediationBody);
+                
+                // CRITICAL FIX: Ensure 'body' exists before parsing its content.
+                if (!response || typeof response.body !== 'string') {
+                    const receivedPayload = JSON.stringify(response, null, 2);
+                    throw new Error(`Invalid API response structure for remediation. Expected 'body' string, received: ${receivedPayload}`);
+                }
+
                 const remediatedData = JSON.parse(response.body);
 
                 // Update Stage 4 UI
