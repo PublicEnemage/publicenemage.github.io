@@ -138,24 +138,6 @@
             vocation: 'General Professional'
         };
 
-        // --- Event Listeners and Initialization ---
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Stage 1 Button: Analyze and Start Guided Review
-            document.getElementById('analyze-button').addEventListener('click', startCritique);
-            
-            // Stage 2 Button: Continue to Role Breakdown & Interview
-            document.getElementById('continue-interview-button').addEventListener('click', () => moveToStage(3));
-            
-            // Stage 3 Button: Submit Answers for This Role & Continue
-            document.getElementById('submit-role-button').addEventListener('click', submitRoleAnswers);
-
-            // Stage 4 Button: Mock Download
-            document.getElementById('download-button').addEventListener('click', () => {
-                alert('In a production app, this would trigger payment and final download.')
-            });
-        });
-
         // Utility function to safely update UI messages
         function updateMessage(type, message) {
             const box = document.getElementById('message-box');
@@ -409,6 +391,36 @@
                 console.error("Remediation Error:", error);
                 moveToStage(2); // Fall back to critique stage if remediation fails
             }
+        }
+        
+        // --- Event Listeners and Initialization ---
+
+        // Stage 1 Button: Analyze and Start Guided Review
+        const analyzeButton = document.getElementById('analyze-button');
+        if (analyzeButton) {
+            analyzeButton.addEventListener('click', startCritique);
+        }
+        
+        // Stage 2 Button: Continue to Role Breakdown & Interview
+        const continueButton = document.getElementById('continue-interview-button');
+        if (continueButton) {
+            continueButton.addEventListener('click', () => moveToStage(3));
+        }
+        
+        // Stage 3 Button: Submit Answers for This Role & Continue
+        const submitButton = document.getElementById('submit-role-button');
+        if (submitButton) {
+            submitButton.addEventListener('click', submitRoleAnswers);
+        }
+
+        // Stage 4 Button: Mock Download
+        const downloadButton = document.getElementById('download-button');
+        if (downloadButton) {
+            downloadButton.addEventListener('click', () => {
+                // IMPORTANT: Use a custom UI element instead of alert() in production apps.
+                // Keeping this for mock purposes based on previous instruction context.
+                alert('In a production app, this would trigger payment and final download.')
+            });
         }
         
     </script>
