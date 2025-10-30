@@ -6,7 +6,28 @@
     <title>Resume Optimizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 
+        PDF.js Worker Setup (CRITICAL FIX)
+        We must define the GlobalWorkerOptions *before* the main PDF.js script 
+        is loaded to prevent it from auto-guessing the incorrect path.
+        Using a stable, working version (e.g., 3.4.120) for the worker source.
+    -->
+    <script>
+        // Define the stable worker source URL here
+        const PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // This global variable must exist and be set *before* the main library loads
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions = { workerSrc: PDF_WORKER_SRC };
+        } else {
+            // If pdfjsLib isn't defined yet, create the structure.
+            window.pdfjsLib = { GlobalWorkerOptions: { workerSrc: PDF_WORKER_SRC } };
+        }
+    </script>
+
     <!-- PDF.js library for client-side PDF text extraction -->
+    <!-- Using a more stable CDN link (mozilla/pdf.js) for the main script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     
     <style>
@@ -118,19 +139,8 @@
     </div>
 
     <script type="module">
-        // Access pdfjsLib using the global window object since the main script is no longer a module import
+        // Access pdfjsLib using the global window object.
         const pdfjsLib = window.pdfjsLib;
-
-        // Set up PDF.js worker path
-        // IMPORTANT: The worker path must be set for pdf.js to function
-        const PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        
-        // This check ensures pdfjsLib is available before trying to configure it.
-        if (pdfjsLib) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
-        } else {
-            console.error("PDF.js library failed to load.");
-        }
 
         // Global state to manage the app flow and data
         const appState = {
@@ -204,8 +214,9 @@
         // --- File Upload Logic ---
 
         async function handleFileUpload(file) {
-            if (!pdfjsLib) {
-                throw new Error('PDF processing library not available. Please try pasting text instead.');
+            // Check if pdfjsLib is available (it should be, as we loaded it globally)
+            if (!pdfjsLib || !pdfjsLib.getDocument) {
+                throw new Error('PDF processing library not fully initialized. Please try pasting text instead.');
             }
             if (file.type !== 'application/pdf') {
                 throw new Error('Unsupported file type. Please upload a PDF file.');
