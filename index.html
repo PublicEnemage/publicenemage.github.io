@@ -8,26 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <!-- 
-        PDF.js Worker Setup (CRITICAL FIX)
-        We must define the GlobalWorkerOptions *before* the main PDF.js script 
-        is loaded to prevent it from auto-guessing the incorrect path.
-        Using a stable, working version (e.g., 3.4.120) for the worker source.
+        PDF.js Setup - Define the stable worker source URL globally.
+        We will assign this inside the module script to ensure it sticks.
     -->
     <script>
-        // Define the stable worker source URL here
-        const PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        
-        // This global variable must exist and be set *before* the main library loads
-        if (window.pdfjsLib) {
-            window.pdfjsLib.GlobalWorkerOptions = { workerSrc: PDF_WORKER_SRC };
-        } else {
-            // If pdfjsLib isn't defined yet, create the structure.
-            window.pdfjsLib = { GlobalWorkerOptions: { workerSrc: PDF_WORKER_SRC } };
-        }
+        window.PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
 
     <!-- PDF.js library for client-side PDF text extraction -->
-    <!-- Using a more stable CDN link (mozilla/pdf.js) for the main script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     
     <style>
@@ -141,6 +129,12 @@
     <script type="module">
         // Access pdfjsLib using the global window object.
         const pdfjsLib = window.pdfjsLib;
+
+        // CRITICAL PDF.js WORKER FIX: Enforce the worker path immediately 
+        // using the stable version path defined globally.
+        if (pdfjsLib) {
+             pdfjsLib.GlobalWorkerOptions.workerSrc = window.PDF_WORKER_SRC;
+        }
 
         // Global state to manage the app flow and data
         const appState = {
@@ -285,10 +279,10 @@
             try {
                 const response = await apiCall('upload_and_critique', { resumeText });
                 
-                // CRITICAL FIX: Ensure 'body' exists before parsing its content.
-                if (!response || typeof response.body !== 'string') {
-                    const receivedPayload = JSON.stringify(response, null, 2);
-                    throw new Error(`Invalid API response structure. Expected 'body' string, received: ${receivedPayload}`);
+                // CRITICAL FIX: Ensure 'body' exists and is a string before parsing its content.
+                if (!response || !response.body || typeof response.body !== 'string') {
+                    const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
+                    throw new Error(`Invalid API response structure. Expected a 'body' string with JSON, but received: ${receivedPayload}. This indicates a backend Lambda failure.`);
                 }
 
                 // Lambda returns a JSON string inside the 'body' property, so we parse it again.
@@ -407,10 +401,10 @@
             try {
                 const response = await apiCall('remediate_and_preview', remediationBody);
                 
-                // CRITICAL FIX: Ensure 'body' exists before parsing its content.
-                if (!response || typeof response.body !== 'string') {
-                    const receivedPayload = JSON.stringify(response, null, 2);
-                    throw new Error(`Invalid API response structure for remediation. Expected 'body' string, received: ${receivedPayload}`);
+                // CRITICAL FIX: Ensure 'body' exists and is a string before parsing its content.
+                if (!response || !response.body || typeof response.body !== 'string') {
+                    const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
+                    throw new Error(`Invalid API response structure for remediation. Expected a 'body' string with JSON, but received: ${receivedPayload}. This indicates a backend Lambda failure.`);
                 }
 
                 const remediatedData = JSON.parse(response.body);
