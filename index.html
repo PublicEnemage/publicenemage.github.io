@@ -53,7 +53,7 @@
             <label for="resume-text" class="block text-gray-700 font-medium mb-2">Option B: Paste Resume Text</label>
             <textarea id="resume-text" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="Paste your professional experience section here..."></textarea>
             
-            <button onclick="startCritique()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
+            <button id="analyze-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
                 Analyze and Start Guided Review
             </button>
         </div>
@@ -75,7 +75,7 @@
                     <p id="summary-critique-output" class="text-base font-medium text-red-800"></p>
                 </div>
             </div>
-            <button onclick="moveToStage(3)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
+            <button id="continue-interview-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
                 Continue to Role Breakdown & Interview
             </button>
         </div>
@@ -98,7 +98,7 @@
             <label for="role-answers" class="block text-gray-700 font-medium mb-2">Your Answers (In detail, write down the numbers, projects, and outcomes):</label>
             <textarea id="role-answers" rows="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="e.g., 'I successfully led the launch of Project X in Q3, which streamlined the client onboarding process. This reduced the average time from 48 hours to 12 hours, impacting 500 new accounts per month.'"></textarea>
 
-            <button onclick="submitRoleAnswers()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
+            <button id="submit-role-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
                 Submit Answers for This Role & Continue
             </button>
         </div>
@@ -110,7 +110,7 @@
             <div id="remediated-content" class="p-6 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap text-gray-800 text-sm leading-relaxed">
                 <!-- Optimized bullet points will be injected here -->
             </div>
-            <button onclick="alert('In a production app, this would trigger payment and final download.')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
+            <button id="download-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
                 Finalize & Download Optimized Resume (Mock Button)
             </button>
         </div>
@@ -138,6 +138,24 @@
             vocation: 'General Professional'
         };
 
+        // --- Event Listeners and Initialization ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Stage 1 Button: Analyze and Start Guided Review
+            document.getElementById('analyze-button').addEventListener('click', startCritique);
+            
+            // Stage 2 Button: Continue to Role Breakdown & Interview
+            document.getElementById('continue-interview-button').addEventListener('click', () => moveToStage(3));
+            
+            // Stage 3 Button: Submit Answers for This Role & Continue
+            document.getElementById('submit-role-button').addEventListener('click', submitRoleAnswers);
+
+            // Stage 4 Button: Mock Download
+            document.getElementById('download-button').addEventListener('click', () => {
+                alert('In a production app, this would trigger payment and final download.')
+            });
+        });
+
         // Utility function to safely update UI messages
         function updateMessage(type, message) {
             const box = document.getElementById('message-box');
@@ -155,7 +173,7 @@
         function getApiGatewayUrl() {
             // Placeholder: Assume the lambda is accessible via a path, or use a predefined mock URL
             // If the environment provides a real API URL, use that here.
-            return 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/'; 
+            return 'https://mock-api.example.com/prod/resume-optimizer'; 
         }
 
         // Centralized fetch utility with backoff and error handling (similar to Python Lambda)
@@ -354,7 +372,7 @@
             // Move to the next role or the final stage
             appState.roleIndex++;
             if (appState.roleIndex < appState.critiqueData.roles.length) {
-                updateMessage('success', `Answers for Role ${appState.roleIndex} saved. Moving to the next role...`);
+                updateMessage('success', `Answers for Role ${appState.roleIndex + 1} saved. Moving to the next role...`);
                 renderCurrentRoleInterview(); // Renders the next role's questions
             } else {
                 updateMessage('success', 'All roles reviewed! Generating your optimized draft now...');
