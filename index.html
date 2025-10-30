@@ -9,7 +9,6 @@
     
     <!-- 
         PDF.js Setup - Define the stable worker source URL globally.
-        We will assign this inside the module script to ensure it sticks.
     -->
     <script>
         window.PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -279,14 +278,24 @@
             try {
                 const response = await apiCall('upload_and_critique', { resumeText });
                 
-                // CRITICAL FIX: Ensure 'body' exists and is a string before parsing its content.
-                if (!response || !response.body || typeof response.body !== 'string') {
+                let critiqueData;
+
+                // FIX: Check if the response contains the expected top-level key ("vocation").
+                // This means the API Gateway is passing the data directly (no 'body' wrapper).
+                if (response && response.vocation) {
+                    critiqueData = response;
+                } 
+                // Legacy Path: Check if the response contains the expected Lambda Proxy V1 'body' wrapper.
+                else if (response && response.body && typeof response.body === 'string') {
+                    // Lambda returns a JSON string inside the 'body' property, so we parse it again.
+                    critiqueData = JSON.parse(response.body); 
+                } else {
+                    // Handle unexpected structure
                     const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`Invalid API response structure. Expected a 'body' string with JSON, but received: ${receivedPayload}. This indicates a backend Lambda failure.`);
+                    throw new Error(`Invalid API response structure. Expected top-level 'vocation' key or a stringified JSON 'body', but received: ${receivedPayload}.`);
                 }
 
-                // Lambda returns a JSON string inside the 'body' property, so we parse it again.
-                appState.critiqueData = JSON.parse(response.body); 
+                appState.critiqueData = critiqueData;
 
                 // Save key data globally
                 appState.vocation = appState.critiqueData.vocation;
@@ -401,13 +410,17 @@
             try {
                 const response = await apiCall('remediate_and_preview', remediationBody);
                 
-                // CRITICAL FIX: Ensure 'body' exists and is a string before parsing its content.
-                if (!response || !response.body || typeof response.body !== 'string') {
+                let remediatedData;
+                
+                // FIX: Apply the same dual-path check for the remediation response
+                if (response && response.preview_content) {
+                    remediatedData = response;
+                } else if (response && response.body && typeof response.body === 'string') {
+                    remediatedData = JSON.parse(response.body);
+                } else {
                     const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`Invalid API response structure for remediation. Expected a 'body' string with JSON, but received: ${receivedPayload}. This indicates a backend Lambda failure.`);
+                    throw new Error(`Invalid API response structure for remediation. Expected 'preview_content' key or a stringified JSON 'body', but received: ${receivedPayload}.`);
                 }
-
-                const remediatedData = JSON.parse(response.body);
 
                 // Update Stage 4 UI
                 document.getElementById('remediated-content').textContent = remediatedData.preview_content;
@@ -418,7 +431,8 @@
             } catch (error) {
                 updateMessage('error', `Remediation failed: ${error.message}`);
                 console.error("Remediation Error:", error);
-                moveToStage(2); // Fall back to critique stage if remediation fails
+                // Fall back to critique stage if remediation fails, but log the error
+                moveToStage(2); 
             }
         }
         
