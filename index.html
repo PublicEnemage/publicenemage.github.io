@@ -171,6 +171,7 @@
             const baseDelay = 1000; // 1 second
 
             document.getElementById('loading-indicator').classList.remove('hidden');
+            document.getElementById('message-box').style.display = 'none'; // Clear messages on new call
 
             for (let attempts = 0; attempts < maxAttempts; attempts++) {
                 try {
@@ -188,7 +189,7 @@
                         throw new Error(`API returned status ${response.status}: ${errorText}`);
                     }
 
-                    // Return the parsed JSON response object
+                    // Return the parsed JSON response object (API Gateway V2/Direct Mode)
                     return await response.json();
 
                 } catch (error) {
@@ -198,7 +199,7 @@
                     if (attempts < maxAttempts - 1) {
                         const delay = baseDelay * Math.pow(2, attempts) + Math.random() * 500;
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        updateMessage('error', `Request failed. Retrying in ${Math.round(delay / 1000)}s...`);
+                        // Do not show retry message here to avoid spamming the user
                     } else {
                         // Re-throw the original error on final failure
                         throw error;
@@ -276,23 +277,16 @@
             document.getElementById('loading-message').textContent = 'Analyzing resume...';
 
             try {
+                // apiCall returns the parsed JSON object directly
                 const response = await apiCall('upload_and_critique', { resumeText });
                 
-                let critiqueData;
+                // CRITICAL FIX: Assume response is the parsed JSON object and check for the main key.
+                let critiqueData = response;
 
-                // FIX: Check if the response contains the expected top-level key ("vocation").
-                // This means the API Gateway is passing the data directly (no 'body' wrapper).
-                if (response && response.vocation) {
-                    critiqueData = response;
-                } 
-                // Legacy Path: Check if the response contains the expected Lambda Proxy V1 'body' wrapper.
-                else if (response && response.body && typeof response.body === 'string') {
-                    // Lambda returns a JSON string inside the 'body' property, so we parse it again.
-                    critiqueData = JSON.parse(response.body); 
-                } else {
-                    // Handle unexpected structure
+                if (!critiqueData || !critiqueData.vocation) {
+                    // This error means the API call failed to return the expected structured JSON.
                     const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`Invalid API response structure. Expected top-level 'vocation' key or a stringified JSON 'body', but received: ${receivedPayload}.`);
+                    throw new Error(`API returned an unexpected structure. Expected a JSON object with 'vocation', but received: ${receivedPayload}.`);
                 }
 
                 appState.critiqueData = critiqueData;
@@ -385,7 +379,7 @@
             // Move to the next role or the final stage
             appState.roleIndex++;
             if (appState.roleIndex < appState.critiqueData.roles.length) {
-                updateMessage('success', `Answers for Role ${appState.roleIndex + 1} saved. Moving to the next role...`);
+                updateMessage('success', `Answers for Role ${appState.roleIndex} saved. Moving to the next role...`);
                 renderCurrentRoleInterview(); // Renders the next role's questions
             } else {
                 updateMessage('success', 'All roles reviewed! Generating your optimized draft now...');
@@ -408,18 +402,15 @@
             };
 
             try {
+                // apiCall returns the parsed JSON object directly
                 const response = await apiCall('remediate_and_preview', remediationBody);
                 
-                let remediatedData;
+                // CRITICAL FIX: Assume response is the parsed JSON object and check for the main key.
+                let remediatedData = response;
                 
-                // FIX: Apply the same dual-path check for the remediation response
-                if (response && response.preview_content) {
-                    remediatedData = response;
-                } else if (response && response.body && typeof response.body === 'string') {
-                    remediatedData = JSON.parse(response.body);
-                } else {
+                if (!remediatedData || !remediatedData.preview_content) {
                     const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`Invalid API response structure for remediation. Expected 'preview_content' key or a stringified JSON 'body', but received: ${receivedPayload}.`);
+                    throw new Error(`API returned an unexpected structure for remediation. Expected a JSON object with 'preview_content', but received: ${receivedPayload}.`);
                 }
 
                 // Update Stage 4 UI
