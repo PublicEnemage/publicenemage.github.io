@@ -345,7 +345,7 @@
             try {
                 const result = await sendRequest('upload_and_critique', { resumeText: resumeText }, 'uploadButton');
                 
-                // Save the critique/questions for later use
+                // Save the critique/questions (and now, hopefully, the 'vocation') for later use
                 currentCritique = result;
 
                 // Update Step 2 UI
@@ -383,10 +383,15 @@
             }
 
             try {
+                // IMPORTANT: We now include 'vocation' in the payload for hyper-focused generation in Step 2.
+                // This 'vocation' is assumed to be returned by the Step 1 backend call.
+                const vocation = currentCritique.vocation || 'General Professional';
+
                 const result = await sendRequest('remediate_and_preview', { 
                     userAnswers: userAnswers,
                     critique: currentCritique.critique,
-                    questions: currentCritique.questions
+                    questions: currentCritique.questions,
+                    vocation: vocation // Pass the identified vocation
                 }, 'remediateButton');
                 
                 // Update Step 3 UI
