@@ -3,450 +3,443 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Career Catalyst MVP</title>
+    <title>Career Catalyst - AI Resume Strategist</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#4F46E5', /* Indigo */
-                        'secondary': '#10B981', /* Emerald */
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
-        /* Custom watermarking effect for the preview */
-        .watermarked-preview {
-            position: relative;
-            background-color: #fff;
-            border: 1px solid #e5e7eb;
-            /* Ensure the text is visible over the watermark but still looks "previewed" */
-            color: #1f2937; 
-            overflow: hidden;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            min-height: 100vh;
         }
-        .watermarked-preview::after {
-            content: "BETA PREVIEW - FREE DOWNLOAD"; /* Updated watermark message */
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-20deg);
-            font-size: 2rem;
-            color: rgba(79, 70, 229, 0.15); /* Primary color, very faint */
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 10;
+        .container-box {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+        .button-primary {
+            background-color: #10b981; /* Emerald 500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .button-primary:hover {
+            background-color: #059669; /* Emerald 600 */
+        }
+        .button-secondary {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .button-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        textarea, input[type="file"] {
+            border: 1px solid #d1d5db;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            resize: none;
         }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-    <div class="min-h-screen flex items-center justify-center p-4">
-        <div id="app-container" class="w-full max-w-4xl bg-white shadow-xl rounded-xl p-8 transition-all duration-300">
-            <!-- Content will be rendered here -->
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-extrabold text-gray-900 flex items-center justify-center">
+            <svg class="w-8 h-8 mr-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Career Catalyst
+        </h1>
+        <p class="text-gray-600 mt-2">AI-Powered Resume Strategist | Limited Free Beta</p>
+    </header>
+
+    <main class="max-w-4xl mx-auto space-y-8">
+        <!-- Message Box for Errors/Notifications -->
+        <div id="messageBox" class="hidden p-4 rounded-lg font-medium" role="alert"></div>
+
+        <!-- Progress Indicator -->
+        <div class="flex justify-between items-center text-sm font-medium text-gray-500">
+            <span id="step1Indicator" class="flex items-center text-emerald-600">
+                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-100 border-2 border-emerald-600 mr-2">1</span> Upload
+            </span>
+            <span class="flex-1 h-1 mx-4 bg-gray-200 rounded-full"></span>
+            <span id="step2Indicator" class="flex items-center">
+                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 border-2 border-gray-400 mr-2">2</span> Interrogation
+            </span>
+            <span class="flex-1 h-1 mx-4 bg-gray-200 rounded-full"></span>
+            <span id="step3Indicator" class="flex items-center">
+                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 border-2 border-gray-400 mr-2">3</span> Preview
+            </span>
         </div>
-    </div>
+
+        <!-- STEP 1: UPLOAD -->
+        <div id="step1" class="container-box">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 1: Upload Your Resume</h2>
+            <p class="text-gray-600 mb-6">Paste your resume text below or upload a file. We will analyze your experience against ATS and recruiter best practices.</p>
+
+            <div class="flex space-x-4 mb-6">
+                <label for="fileInput" class="button-secondary cursor-pointer flex-grow text-center flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Choose Resume File (PDF/DOCX)
+                </label>
+                <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileSelect(event)">
+            </div>
+            
+            <textarea id="resumeText" rows="15" placeholder="Paste your resume text here..." class="mb-6"></textarea>
+            
+            <button onclick="handleUpload()" class="button-primary w-full flex items-center justify-center" id="uploadButton">
+                Get Free Critique & Questions
+            </button>
+        </div>
+
+        <!-- STEP 2: INTERROGATION -->
+        <div id="step2" class="container-box hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 2: Interrogation (Fill in the Gaps)</h2>
+            <div id="critiqueOutput" class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mb-6 rounded-lg">
+                <p class="font-bold mb-2">Critique:</p>
+                <p id="critiqueText" class="text-sm"></p>
+            </div>
+            
+            <p class="text-gray-700 mb-4 font-semibold">To elevate your resume, answer the following questions with concrete, quantifiable data:</p>
+            
+            <div id="questionsContainer" class="space-y-4 mb-6">
+                <!-- Questions will be dynamically inserted here -->
+            </div>
+
+            <p class="text-gray-600 mb-4 text-sm font-medium italic">Type your detailed answers into the box below. Your answers are saved automatically.</p>
+            <textarea id="answersText" rows="10" placeholder="Type your full, detailed answers here, one after the other..." oninput="saveAnswers()"></textarea>
+
+            <button onclick="handleRemediate()" class="button-primary w-full mt-6 flex items-center justify-center" id="remediateButton">
+                Generate Optimized Preview
+            </button>
+        </div>
+
+        <!-- STEP 3: PREVIEW & DOWNLOAD -->
+        <div id="step3" class="container-box hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Step 3: Preview & Final Download</h2>
+            
+            <div id="successMessage" class="p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 mb-6 rounded-lg">
+                <p class="font-bold">Beta Download Successful! 🎉</p>
+                <p class="text-sm">Thank you for participating in the **Career Catalyst** Proof-of-Concept! Your fully optimized resume is below. We encourage you to use this content and provide feedback.</p>
+            </div>
+
+            <p class="font-semibold text-gray-800 mb-3">Optimized Resume Snippet:</p>
+            <pre id="previewOutput" class="bg-gray-50 p-4 rounded-lg text-sm whitespace-pre-wrap mb-6"></pre>
+
+            <button onclick="handleFinalDownload()" class="button-primary w-full flex items-center justify-center">
+                Download Final Optimized Text (Value ₹999, Free Beta)
+            </button>
+        </div>
+    </main>
 
     <script>
         // --- CONFIGURATION ---
-        // REPLACE THIS WITH YOUR DEPLOYED API GATEWAY URL
-        //const API_BASE_URL = 'YOUR_API_GATEWAY_URL_HERE'; 
-        const API_BASE_URL = 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/'; 
-        let currentStep = 'upload';
+        // REPLACE THIS WITH YOUR DEPLOYED API GATEWAY ENDPOINT
+        const API_ENDPOINT = "https://4opc01m1af.execute-api.us-east-2.amazonaws.com/"; 
+
+        // --- STATE MANAGEMENT ---
+        let currentStep = 1;
         let userId = localStorage.getItem('careerCatalystUserId') || crypto.randomUUID();
-        let questionsData = [];
-        let optimizedPreview = '';
+        localStorage.setItem('careerCatalystUserId', userId);
+        let uploadedFileText = ''; 
+        let currentCritique = null;
 
-        const storeUserId = (id) => {
-            userId = id;
-            localStorage.setItem('careerCatalystUserId', id);
-        }
+        // --- UI UTILITIES ---
 
-        // --- STATE MANAGEMENT & RENDERING ---
-
-        const updateView = () => {
-            const container = document.getElementById('app-container');
-            container.innerHTML = '';
-            
-            // Render loading state
-            if (currentStep === 'loading') {
-                container.innerHTML = loadingState();
-                return;
-            }
-
-            // Render current step
-            switch(currentStep) {
-                case 'upload':
-                    container.innerHTML = uploadView();
-                    // Attach change listener to file input if it exists
-                    document.getElementById('file-input')?.addEventListener('change', handleFileSelect);
-                    break;
-                case 'interrogation':
-                    container.innerHTML = interrogationView();
-                    break;
-                case 'preview':
-                    container.innerHTML = previewView();
-                    break;
-                case 'success':
-                    container.innerHTML = successView();
-                    break;
-                default:
-                    container.innerHTML = uploadView();
+        function showMessage(message, type = 'error') {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.classList.remove('hidden', 'bg-red-50', 'border-red-500', 'text-red-700', 'bg-green-50', 'border-green-500', 'text-green-700');
+            if (type === 'success') {
+                box.classList.add('bg-green-50', 'border-green-500', 'text-green-700');
+            } else {
+                box.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
             }
         }
 
-        // --- MOCK FILE READER (POC) ---
-        
-        /**
-         * In a real application, this function would use a service 
-         * (e.g., Tika, or a library like pdf.js) to extract text from 
-         * PDF/DOCX files. For the POC, we simulate the result.
-         */
-        const mockFileRead = (file) => {
-            return new Promise((resolve) => {
-                // Simulate file reading delay
-                setTimeout(() => {
-                    const mockContent = `
-John Doe
-(555) 123-4567 | johndoe@email.com | LinkedIn/john-doe
+        function hideMessage() {
+            document.getElementById('messageBox').classList.add('hidden');
+        }
 
-Experience
-Marketing Manager, TechCorp | 2020 - Present
-Responsible for managing digital campaigns and driving web traffic.
-Worked with a team of analysts to meet project goals.
-Optimized server performance to improve user experience.
+        function updateStepIndicator(step) {
+            const steps = [1, 2, 3];
+            steps.forEach(s => {
+                const indicator = document.getElementById(`step${s}Indicator`);
+                const num = indicator.querySelector('span');
+                const line = indicator.previousElementSibling;
 
-Education
-MBA, City University | 2018
+                indicator.classList.remove('text-emerald-600', 'text-gray-500');
+                num.classList.remove('bg-emerald-100', 'border-emerald-600', 'bg-gray-100', 'border-gray-400');
+                
+                if (line) {
+                    line.classList.remove('bg-emerald-600', 'bg-gray-200');
+                    line.classList.add(s <= step ? 'bg-emerald-600' : 'bg-gray-200');
+                }
 
-Skills
-Digital Marketing, SEO, AWS, Team Leadership, Budget Management.
-`;
-                    resolve(mockContent);
-                }, 500);
+                if (s === step) {
+                    indicator.classList.add('text-emerald-600');
+                    num.classList.add('bg-emerald-100', 'border-2', 'border-emerald-600');
+                } else if (s < step) {
+                    indicator.classList.add('text-emerald-600');
+                    num.classList.add('bg-emerald-100', 'border-2', 'border-emerald-600');
+                } else {
+                    indicator.classList.add('text-gray-500');
+                    num.classList.add('bg-gray-100', 'border-2', 'border-gray-400');
+                }
             });
-        };
 
-        let uploadedFileText = '';
+            document.getElementById('step1').classList.toggle('hidden', step !== 1);
+            document.getElementById('step2').classList.toggle('hidden', step !== 2);
+            document.getElementById('step3').classList.toggle('hidden', step !== 3);
+            currentStep = step;
+        }
 
-        const handleFileSelect = async (event) => {
+        // --- FILE HANDLING ---
+
+        function handleFileSelect(event) {
             const file = event.target.files[0];
-            const textInput = document.getElementById('resume-text-input');
-            const fileNameDisplay = document.getElementById('file-name-display');
+            const resumeTextarea = document.getElementById('resumeText');
             
             if (file) {
-                // Check file type (Client-side validation only)
-                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-                if (!allowedTypes.includes(file.type)) {
-                    fileNameDisplay.textContent = `Invalid file type: ${file.name}. Please use PDF, .doc, or .docx.`;
-                    event.target.value = null; // Reset file input
+                // Mock function to simulate reading file text
+                // In a real app, this would require a separate service for PDF/DOCX parsing
+                const fileName = file.name;
+                
+                // Set a mock text content based on file type for POC testing
+                if (fileName.toLowerCase().endsWith('.pdf')) {
+                    uploadedFileText = `[File: ${fileName} - PDF Content Mock] This is the text extracted from the PDF. It often needs cleaning, but here is the raw content of the resume from the file.`;
+                } else if (fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
+                    uploadedFileText = `[File: ${fileName} - DOCX Content Mock] This is the text extracted from the Word document. It contains the essential sections of the candidate's history.`;
+                } else {
+                    showMessage('Unsupported file type selected.', 'error');
                     uploadedFileText = '';
+                    event.target.value = null; // Clear input
                     return;
                 }
+                
+                resumeTextarea.value = uploadedFileText;
+                resumeTextarea.disabled = true;
+                resumeTextarea.placeholder = `Text loaded from ${fileName}. To edit, clear the file input.`;
+                showMessage(`File selected: ${fileName}. Text content is loaded.`, 'success');
 
-                fileNameDisplay.textContent = `Processing file: ${file.name}...`;
-                // Disable manual text input while a file is selected
-                textInput.value = '';
-                textInput.disabled = true;
-
-                // MOCK: Read file content
-                uploadedFileText = await mockFileRead(file);
-                fileNameDisplay.textContent = `File ready: ${file.name}.`;
             } else {
-                fileNameDisplay.textContent = 'Or select a file (.pdf, .doc, .docx)';
-                textInput.disabled = false;
                 uploadedFileText = '';
+                resumeTextarea.disabled = false;
+                resumeTextarea.placeholder = "Paste your resume text here...";
             }
-        };
+        }
 
-        // --- VIEWS (HTML TEMPLATES) ---
+        // --- LOCAL STORAGE PERSISTENCE (Step 2 Answers) ---
 
-        const loadingState = () => `
-            <div class="text-center py-20">
-                <div class="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-                <p class="mt-4 text-lg font-semibold text-gray-700">Processing your resume...</p>
-                <p class="text-sm text-gray-500">The AI is generating your critique and custom questions.</p>
-            </div>
-        `;
+        function saveAnswers() {
+            const answersText = document.getElementById('answersText').value;
+            localStorage.setItem('careerCatalystAnswers', answersText);
+        }
 
-        const uploadView = () => `
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Career Catalyst</h1>
-            <h2 class="text-xl font-semibold text-primary mb-4">Limited Free Beta Offer!</h2>
-            <p class="text-gray-600 mb-8">Upload your resume to receive a free, in-depth critique and tailored questions to transform your document into a high-impact, quantified masterpiece. Help us test the end-to-end flow.</p>
-            
-            <!-- File Upload Input -->
-            <div class="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                <input type="file" id="file-input" accept=".pdf,.doc,.docx" class="hidden">
-                <label for="file-input" class="cursor-pointer inline-block py-2 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150">
-                    Choose Resume File
-                </label>
-                <p id="file-name-display" class="text-sm text-gray-500 mt-2">Or select a file (.pdf, .doc, .docx)</p>
-            </div>
-
-            <div class="relative flex items-center mb-4">
-                <div class="flex-grow border-t border-gray-300"></div>
-                <span class="flex-shrink mx-4 text-gray-400">OR</span>
-                <div class="flex-grow border-t border-gray-300"></div>
-            </div>
-
-            <label class="block text-sm font-medium text-gray-700 mb-2">Paste Resume Text (Manual Entry)</label>
-            <textarea id="resume-text-input" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="Paste your raw text content here..."></textarea>
-            <p class="text-xs text-gray-500 mt-1">If you upload a file, manual text entry will be disabled.</p>
-            
-            <button onclick="handleUpload()" id="upload-btn" class="mt-6 w-full py-3 px-4 rounded-lg bg-secondary text-white font-semibold hover:bg-emerald-600 transition duration-150 shadow-md">
-                Get Free Critique & Questions
-            </button>
-            <p class="text-xs text-center text-gray-400 mt-4">Your Session ID: ${userId.substring(0, 8)}... (Use this if you contact support)</p>
-        `;
-
-        const interrogationView = () => `
-            <h1 class="text-3xl font-bold text-primary mb-4">Step 2: Interrogation (The Missing Data)</h1>
-            <p class="text-gray-600 mb-6">Based on our critique, we need these specific details to dramatically improve your resume. **Be detailed and use numbers!**</p>
-            
-            <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-6">
-                <h2 class="text-xl font-semibold text-indigo-700">Critique Summary</h2>
-                <p class="text-sm text-indigo-800 mt-2">${questionsData.critique}</p>
-            </div>
-
-            <form id="interrogation-form" class="space-y-6">
-                ${questionsData.questions.map((q, index) => `
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">${index + 1}. ${q}</label>
-                        <textarea name="answer-${index}" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary" required></textarea>
-                    </div>
-                `).join('')}
-            </form>
-            
-            <button onclick="handleInterrogationSubmit()" class="mt-8 w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
-                Generate Optimized Preview
-            </button>
-        `;
-
-        const previewView = () => `
-            <h1 class="text-3xl font-bold text-secondary mb-4">Step 3: Preview & Free Download</h1>
-            <p class="text-gray-600 mb-6">Your new, high-impact resume content has been generated! See the significant improvements below. **This document is valued at ₹999 / $12 USD** but is **FREE** for this limited beta test.</p>
-
-            <div class="watermarked-preview p-6 rounded-lg shadow-lg mb-8">
-                <h2 class="text-2xl font-bold text-primary mb-4">CATALYST HIGHLIGHTS (BETA Preview)</h2>
-                <div class="whitespace-pre-wrap text-gray-800 min-h-[300px]">
-                    ${optimizedPreview}
-                </div>
-            </div>
-
-            <div class="p-6 bg-green-50 border border-green-300 rounded-lg text-center">
-                <p class="text-xl font-bold text-green-800 mb-2">LIMITED TIME OFFER: **FREE**</p>
-                <button onclick="handlePayment()" class="w-2/3 py-3 px-4 rounded-lg bg-secondary text-white font-bold text-lg hover:bg-emerald-600 transition duration-150 shadow-xl">
-                    Download Final Document Now (Free Beta)
-                </button>
-                <p class="text-sm text-gray-500 mt-2">Click to confirm your participation in the Career Catalyst Beta test.</p>
-            </div>
-        `;
-
-        const successView = () => `
-            <h1 class="text-3xl font-bold text-secondary mb-4">Beta Download Successful! 🎉</h1>
-            <p class="text-gray-600 mb-6">Thank you for participating in the **Career Catalyst** Proof-of-Concept! Your fully optimized resume is below. We encourage you to use this content and provide feedback.</p>
-
-            <div class="p-6 bg-indigo-50 border border-indigo-300 rounded-lg mb-8">
-                <h2 class="text-xl font-semibold text-indigo-700 mb-3">Final Optimized Content (Text Only)</h2>
-                <div class="whitespace-pre-wrap text-gray-800 bg-white p-4 rounded-lg border">
-                    ${optimizedPreview}
-                </div>
-            </div>
-
-            <p class="text-lg text-gray-700">Please save this content. In the paid version, a beautifully formatted PDF/DOCX file will be delivered automatically.</p>
-            <button onclick="resetApp()" class="mt-6 w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
-                Start Another Review
-            </button>
-        `;
-        
-        // --- API CALLS ---
-
-        const sendRequest = async (action, payload = {}) => {
-            if (API_BASE_URL === 'YOUR_API_GATEWAY_URL_HERE') {
-                throw new Error("API_BASE_URL is not configured. Please deploy the stack and update the URL in the index.html file.");
-            }
-            const url = `${API_BASE_URL}`; // Base URL already includes the action via the POST body
-            
-            // Set up exponential backoff for retries
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-Id': userId, // Pass userId for session tracking
-                        },
-                        body: JSON.stringify({ ...payload, action: action })
-                    });
-
-                    if (response.ok) {
-                        return await response.json();
-                    } else if (response.status === 429 && i < 2) {
-                        // Rate limit error, wait and retry
-                        const delay = Math.pow(2, i) * 1000;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        continue; 
-                    } else {
-                        const errorBody = await response.json();
-                        throw new Error(errorBody.message || `API Error: ${response.statusText}`);
-                    }
-                } catch (error) {
-                    console.error("Fetch attempt failed:", error);
-                    if (i === 2) throw error; 
-                    const delay = Math.pow(2, i) * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
+        function loadAnswers() {
+            if (currentStep === 2) {
+                const savedAnswers = localStorage.getItem('careerCatalystAnswers');
+                if (savedAnswers) {
+                    document.getElementById('answersText').value = savedAnswers;
+                    showMessage('Your previously typed answers have been restored.', 'success');
                 }
             }
-        };
+        }
 
+        function clearSavedAnswers() {
+            localStorage.removeItem('careerCatalystAnswers');
+        }
 
-        // --- HANDLERS ---
+        // --- BACKEND COMMUNICATION ---
 
-        const handleUpload = async () => {
-            const pastedText = document.getElementById('resume-text-input').value.trim();
+        async function sendRequest(action, data = {}, buttonId = null) {
+            let button = buttonId ? document.getElementById(buttonId) : null;
+            let originalButtonText = button ? button.innerHTML : null;
+            let attempts = 0;
+            const maxAttempts = 4;
+            const baseDelay = 1000;
+            
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...`;
+            }
+
+            try {
+                // Exponential Backoff Retry Loop
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    try {
+                        const response = await fetch(API_ENDPOINT, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-User-Id': userId, // Pass the session ID for tracking
+                            },
+                            body: JSON.stringify({ action: action, ...data })
+                        });
+
+                        if (response.status === 500) {
+                            // On 500 errors, attempt a retry with exponential backoff
+                            if (attempts < maxAttempts) {
+                                const delay = baseDelay * (2 ** (attempts - 1));
+                                showMessage(`Backend error encountered. Retrying in ${delay / 1000}s... (Attempt ${attempts}/${maxAttempts})`, 'error');
+                                await new Promise(resolve => setTimeout(resolve, delay));
+                                continue; // Skip to next iteration
+                            }
+                            throw new Error("Internal Server Error");
+                        }
+                        
+                        // Handle success or non-500 failures
+                        const result = await response.json();
+                        if (!response.ok) {
+                            throw new Error(result.message || `HTTP error! Status: ${response.status}`);
+                        }
+                        return result;
+
+                    } catch (error) {
+                        if (error.message.includes("Internal Server Error") || error.message.includes("HTTP error! Status: 500")) {
+                            // This catch block handles internal server errors after max attempts
+                            throw error; 
+                        }
+                        // Handle network or JSON parsing errors, which are usually not worth retrying
+                        throw error;
+                    }
+                }
+                
+                // Should be unreachable if maxAttempts logic is followed
+                throw new Error("Maximum retry attempts reached.");
+
+            } catch (error) {
+                console.error("Fetch attempt failed:", error);
+                showMessage(`Request failed: ${error.message}. Please check your API Endpoint and CloudWatch logs.`, 'error');
+                throw error; // Re-throw to be caught by the calling function
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalButtonText;
+                }
+            }
+        }
+
+        // --- WORKFLOW HANDLERS ---
+
+        async function handleUpload() {
+            hideMessage();
+            const pastedText = document.getElementById('resumeText').value.trim();
             const resumeText = uploadedFileText || pastedText;
 
             if (!resumeText) {
-                // Display a message box instead of alert()
-                const container = document.getElementById('app-container');
-                container.insertAdjacentHTML('afterbegin', `<div id="error-box-upload" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
-                    <div class="bg-white p-6 rounded-lg shadow-2xl">
-                        <p class="font-bold text-lg text-red-600">Missing Resume Text</p>
-                        <p class="mt-2 text-gray-700">Please paste your resume content or upload a file to begin the critique.</p>
-                        <button onclick="document.getElementById('error-box-upload').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Got It</button>
-                    </div>
-                </div>`);
+                showMessage("Please paste your resume or select a file.", 'error');
                 return;
             }
 
-            currentStep = 'loading';
-            updateView();
-            storeUserId(userId); 
-
             try {
-                // Note: We send the extracted text, whether it came from a paste or the mock file read.
-                const result = await sendRequest('upload_and_critique', { resumeText });
+                const result = await sendRequest('upload_and_critique', { resumeText: resumeText }, 'uploadButton');
                 
-                questionsData = {
-                    critique: result.critique,
-                    questions: result.questions
-                };
-                currentStep = 'interrogation';
+                // Save the critique/questions for later use
+                currentCritique = result;
+
+                // Update Step 2 UI
+                document.getElementById('critiqueText').innerText = result.critique;
+                const qContainer = document.getElementById('questionsContainer');
+                qContainer.innerHTML = ''; // Clear previous questions
+                result.questions.forEach((q, index) => {
+                    const qElement = document.createElement('p');
+                    qElement.className = 'text-gray-900';
+                    qElement.innerHTML = `<span class="font-bold text-emerald-600">${index + 1}.</span> ${q}`;
+                    qContainer.appendChild(qElement);
+                });
+
+                updateStepIndicator(2);
+                loadAnswers(); // Load answers into the text area for persistence
+
             } catch (error) {
                 console.error("Upload/Critique failed:", error);
-                // Display error to the user without using alert()
-                const container = document.getElementById('app-container');
-                container.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg" role="alert">
-                    <p class="font-bold">Processing Error</p>
-                    <p class="text-sm">${error.message}. Please check console for details.</p>
-                    <button onclick="resetApp()" class="mt-2 text-sm text-red-500 underline">Try Again</button>
-                </div>`;
-                currentStep = 'error';
-            } finally {
-                // Reset file state on successful upload or error before changing view
-                uploadedFileText = ''; 
-                if (currentStep !== 'error') updateView();
+                // Error message is already displayed by sendRequest
             }
-        };
+        }
 
-        const handleInterrogationSubmit = async () => {
-            const form = document.getElementById('interrogation-form');
-            const userAnswers = {};
-            let allAnswered = true;
-
-            questionsData.questions.forEach((q, index) => {
-                const answer = form.elements[`answer-${index}`].value.trim();
-                if (!answer) {
-                    allAnswered = false;
-                }
-                userAnswers[q] = answer;
-            });
-
-            if (!allAnswered) {
-                 // Display a message box instead of alert()
-                const container = document.getElementById('app-container');
-                container.insertAdjacentHTML('afterbegin', `<div id="error-box" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
-                    <div class="bg-white p-6 rounded-lg shadow-2xl">
-                        <p class="font-bold text-lg text-red-600">Hold On!</p>
-                        <p class="mt-2 text-gray-700">Please answer all questions with specific, quantified details to generate the best result.</p>
-                        <button onclick="document.getElementById('error-box').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Got It</button>
-                    </div>
-                </div>`);
+        async function handleRemediate() {
+            hideMessage();
+            const userAnswers = document.getElementById('answersText').value.trim();
+            
+            if (!userAnswers) {
+                showMessage("Please answer the questions before generating the preview.", 'error');
                 return;
             }
 
-            currentStep = 'loading';
-            updateView();
-
-            try {
-                const result = await sendRequest('remediate_and_preview', { userAnswers });
-                optimizedPreview = result.preview_content;
-                currentStep = 'preview';
-            } catch (error) {
-                console.error("Remediation failed:", error);
-                // Handle error
-                currentStep = 'interrogation'; 
-            } finally {
-                updateView();
+            if (!currentCritique) {
+                showMessage("Critique data is missing. Please restart from Step 1.", 'error');
+                return;
             }
-        };
-
-        const handlePayment = async () => {
-            // --- PHASE 1 MOCK PAYMENT FLOW ---
-            // We skip the payment gateway integration for this POC.
-            
-            currentStep = 'loading';
-            updateView();
 
             try {
-                // Call the API endpoint which will mock the payment success and update DynamoDB status
-                const result = await sendRequest('purchase_complete', { userId });
+                const result = await sendRequest('remediate_and_preview', { 
+                    userAnswers: userAnswers,
+                    critique: currentCritique.critique,
+                    questions: currentCritique.questions
+                }, 'remediateButton');
                 
-                if (result.status === 'SUCCESS') {
-                    // The server returns the final content
-                    optimizedPreview = result.final_document_content;
-                    currentStep = 'success';
-                } else {
-                    // This handles server-side denial (e.g., if a free pass limit was hit)
-                     // Display a message box instead of alert()
-                    const container = document.getElementById('app-container');
-                    container.insertAdjacentHTML('afterbegin', `<div id="error-box-purchase" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
-                        <div class="bg-white p-6 rounded-lg shadow-2xl">
-                            <p class="font-bold text-lg text-red-600">Limit Reached</p>
-                            <p class="mt-2 text-gray-700">${result.message || "This free beta offer has a limit per user. Please wait for the paid version."}</p>
-                            <button onclick="document.getElementById('error-box-purchase').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Close</button>
-                        </div>
-                    </div>`);
-                    currentStep = 'preview'; // Stay on the preview screen
-                }
-            } catch (error) {
-                console.error("Purchase confirmation failed:", error);
-                // Handle generic errors
-                currentStep = 'preview'; 
-            } finally {
-                updateView();
-            }
-        };
+                // Update Step 3 UI
+                document.getElementById('previewOutput').textContent = result.preview_content;
+                
+                clearSavedAnswers(); // Clear answers from storage after successful generation
+                updateStepIndicator(3);
 
-        const resetApp = () => {
-             // Generate a new UUID for a fresh session
-            storeUserId(crypto.randomUUID()); 
-            currentStep = 'upload';
-            questionsData = [];
-            optimizedPreview = '';
-            uploadedFileText = ''; // Reset file text state
-            updateView();
+            } catch (error) {
+                console.error("Remediation/Preview failed:", error);
+                // Error message is already displayed by sendRequest
+            }
+        }
+
+        async function handleFinalDownload() {
+            hideMessage();
+            try {
+                const result = await sendRequest('purchase_complete', {}, 'downloadButton');
+                
+                if (result.status === 'LIMIT_REACHED') {
+                    showMessage(result.message, 'error');
+                    return;
+                }
+                
+                // Create a Blob for the file download
+                const fileContent = result.final_document_content;
+                const blob = new Blob([fileContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create a temporary link element
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Career_Catalyst_Optimized_Resume.txt';
+                
+                // Append to body and click to trigger download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Clean up the object URL
+                URL.revokeObjectURL(url);
+
+                showMessage("File successfully downloaded! 🎉", 'success');
+
+            } catch (error) {
+                console.error("Final Download failed:", error);
+            }
         }
 
         // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', updateView);
+        window.onload = function() {
+            updateStepIndicator(1);
+        };
     </script>
 </body>
 </html>
