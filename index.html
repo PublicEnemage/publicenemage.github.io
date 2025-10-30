@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Catalyst MVP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5', /* Indigo */
+                        'secondary': '#10B981', /* Emerald */
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+        /* Custom watermarking effect for the preview */
+        .watermarked-preview {
+            position: relative;
+            background-color: #fff;
+            border: 1px solid #e5e7eb;
+            /* Ensure the text is visible over the watermark but still looks "previewed" */
+            color: #1f2937; 
+            overflow: hidden;
+        }
+        .watermarked-preview::after {
+            content: "BETA PREVIEW - FREE DOWNLOAD"; /* Updated watermark message */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: 2rem;
+            color: rgba(79, 70, 229, 0.15); /* Primary color, very faint */
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div id="app-container" class="w-full max-w-4xl bg-white shadow-xl rounded-xl p-8 transition-all duration-300">
+            <!-- Content will be rendered here -->
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // REPLACE THIS WITH YOUR DEPLOYED API GATEWAY URL
+        //const API_BASE_URL = 'YOUR_API_GATEWAY_URL_HERE'; 
+        const API_BASE_URL = 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/'; 
+        let currentStep = 'upload';
+        let userId = localStorage.getItem('careerCatalystUserId') || crypto.randomUUID();
+        let questionsData = [];
+        let optimizedPreview = '';
+
+        const storeUserId = (id) => {
+            userId = id;
+            localStorage.setItem('careerCatalystUserId', id);
+        }
+
+        // --- STATE MANAGEMENT & RENDERING ---
+
+        const updateView = () => {
+            const container = document.getElementById('app-container');
+            container.innerHTML = '';
+            
+            // Render loading state
+            if (currentStep === 'loading') {
+                container.innerHTML = loadingState();
+                return;
+            }
+
+            // Render current step
+            switch(currentStep) {
+                case 'upload':
+                    container.innerHTML = uploadView();
+                    // Attach change listener to file input if it exists
+                    document.getElementById('file-input')?.addEventListener('change', handleFileSelect);
+                    break;
+                case 'interrogation':
+                    container.innerHTML = interrogationView();
+                    break;
+                case 'preview':
+                    container.innerHTML = previewView();
+                    break;
+                case 'success':
+                    container.innerHTML = successView();
+                    break;
+                default:
+                    container.innerHTML = uploadView();
+            }
+        }
+
+        // --- MOCK FILE READER (POC) ---
+        
+        /**
+         * In a real application, this function would use a service 
+         * (e.g., Tika, or a library like pdf.js) to extract text from 
+         * PDF/DOCX files. For the POC, we simulate the result.
+         */
+        const mockFileRead = (file) => {
+            return new Promise((resolve) => {
+                // Simulate file reading delay
+                setTimeout(() => {
+                    const mockContent = `
+John Doe
+(555) 123-4567 | johndoe@email.com | LinkedIn/john-doe
+
+Experience
+Marketing Manager, TechCorp | 2020 - Present
+Responsible for managing digital campaigns and driving web traffic.
+Worked with a team of analysts to meet project goals.
+Optimized server performance to improve user experience.
+
+Education
+MBA, City University | 2018
+
+Skills
+Digital Marketing, SEO, AWS, Team Leadership, Budget Management.
+`;
+                    resolve(mockContent);
+                }, 500);
+            });
+        };
+
+        let uploadedFileText = '';
+
+        const handleFileSelect = async (event) => {
+            const file = event.target.files[0];
+            const textInput = document.getElementById('resume-text-input');
+            const fileNameDisplay = document.getElementById('file-name-display');
+            
+            if (file) {
+                // Check file type (Client-side validation only)
+                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                if (!allowedTypes.includes(file.type)) {
+                    fileNameDisplay.textContent = `Invalid file type: ${file.name}. Please use PDF, .doc, or .docx.`;
+                    event.target.value = null; // Reset file input
+                    uploadedFileText = '';
+                    return;
+                }
+
+                fileNameDisplay.textContent = `Processing file: ${file.name}...`;
+                // Disable manual text input while a file is selected
+                textInput.value = '';
+                textInput.disabled = true;
+
+                // MOCK: Read file content
+                uploadedFileText = await mockFileRead(file);
+                fileNameDisplay.textContent = `File ready: ${file.name}.`;
+            } else {
+                fileNameDisplay.textContent = 'Or select a file (.pdf, .doc, .docx)';
+                textInput.disabled = false;
+                uploadedFileText = '';
+            }
+        };
+
+        // --- VIEWS (HTML TEMPLATES) ---
+
+        const loadingState = () => `
+            <div class="text-center py-20">
+                <div class="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <p class="mt-4 text-lg font-semibold text-gray-700">Processing your resume...</p>
+                <p class="text-sm text-gray-500">The AI is generating your critique and custom questions.</p>
+            </div>
+        `;
+
+        const uploadView = () => `
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Career Catalyst</h1>
+            <h2 class="text-xl font-semibold text-primary mb-4">Limited Free Beta Offer!</h2>
+            <p class="text-gray-600 mb-8">Upload your resume to receive a free, in-depth critique and tailored questions to transform your document into a high-impact, quantified masterpiece. Help us test the end-to-end flow.</p>
+            
+            <!-- File Upload Input -->
+            <div class="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx" class="hidden">
+                <label for="file-input" class="cursor-pointer inline-block py-2 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150">
+                    Choose Resume File
+                </label>
+                <p id="file-name-display" class="text-sm text-gray-500 mt-2">Or select a file (.pdf, .doc, .docx)</p>
+            </div>
+
+            <div class="relative flex items-center mb-4">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink mx-4 text-gray-400">OR</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <label class="block text-sm font-medium text-gray-700 mb-2">Paste Resume Text (Manual Entry)</label>
+            <textarea id="resume-text-input" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="Paste your raw text content here..."></textarea>
+            <p class="text-xs text-gray-500 mt-1">If you upload a file, manual text entry will be disabled.</p>
+            
+            <button onclick="handleUpload()" id="upload-btn" class="mt-6 w-full py-3 px-4 rounded-lg bg-secondary text-white font-semibold hover:bg-emerald-600 transition duration-150 shadow-md">
+                Get Free Critique & Questions
+            </button>
+            <p class="text-xs text-center text-gray-400 mt-4">Your Session ID: ${userId.substring(0, 8)}... (Use this if you contact support)</p>
+        `;
+
+        const interrogationView = () => `
+            <h1 class="text-3xl font-bold text-primary mb-4">Step 2: Interrogation (The Missing Data)</h1>
+            <p class="text-gray-600 mb-6">Based on our critique, we need these specific details to dramatically improve your resume. **Be detailed and use numbers!**</p>
+            
+            <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-6">
+                <h2 class="text-xl font-semibold text-indigo-700">Critique Summary</h2>
+                <p class="text-sm text-indigo-800 mt-2">${questionsData.critique}</p>
+            </div>
+
+            <form id="interrogation-form" class="space-y-6">
+                ${questionsData.questions.map((q, index) => `
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">${index + 1}. ${q}</label>
+                        <textarea name="answer-${index}" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary" required></textarea>
+                    </div>
+                `).join('')}
+            </form>
+            
+            <button onclick="handleInterrogationSubmit()" class="mt-8 w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
+                Generate Optimized Preview
+            </button>
+        `;
+
+        const previewView = () => `
+            <h1 class="text-3xl font-bold text-secondary mb-4">Step 3: Preview & Free Download</h1>
+            <p class="text-gray-600 mb-6">Your new, high-impact resume content has been generated! See the significant improvements below. **This document is valued at ₹999 / $12 USD** but is **FREE** for this limited beta test.</p>
+
+            <div class="watermarked-preview p-6 rounded-lg shadow-lg mb-8">
+                <h2 class="text-2xl font-bold text-primary mb-4">CATALYST HIGHLIGHTS (BETA Preview)</h2>
+                <div class="whitespace-pre-wrap text-gray-800 min-h-[300px]">
+                    ${optimizedPreview}
+                </div>
+            </div>
+
+            <div class="p-6 bg-green-50 border border-green-300 rounded-lg text-center">
+                <p class="text-xl font-bold text-green-800 mb-2">LIMITED TIME OFFER: **FREE**</p>
+                <button onclick="handlePayment()" class="w-2/3 py-3 px-4 rounded-lg bg-secondary text-white font-bold text-lg hover:bg-emerald-600 transition duration-150 shadow-xl">
+                    Download Final Document Now (Free Beta)
+                </button>
+                <p class="text-sm text-gray-500 mt-2">Click to confirm your participation in the Career Catalyst Beta test.</p>
+            </div>
+        `;
+
+        const successView = () => `
+            <h1 class="text-3xl font-bold text-secondary mb-4">Beta Download Successful! 🎉</h1>
+            <p class="text-gray-600 mb-6">Thank you for participating in the **Career Catalyst** Proof-of-Concept! Your fully optimized resume is below. We encourage you to use this content and provide feedback.</p>
+
+            <div class="p-6 bg-indigo-50 border border-indigo-300 rounded-lg mb-8">
+                <h2 class="text-xl font-semibold text-indigo-700 mb-3">Final Optimized Content (Text Only)</h2>
+                <div class="whitespace-pre-wrap text-gray-800 bg-white p-4 rounded-lg border">
+                    ${optimizedPreview}
+                </div>
+            </div>
+
+            <p class="text-lg text-gray-700">Please save this content. In the paid version, a beautifully formatted PDF/DOCX file will be delivered automatically.</p>
+            <button onclick="resetApp()" class="mt-6 w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold hover:bg-indigo-700 transition duration-150 shadow-md">
+                Start Another Review
+            </button>
+        `;
+        
+        // --- API CALLS ---
+
+        const sendRequest = async (action, payload = {}) => {
+            if (API_BASE_URL === 'YOUR_API_GATEWAY_URL_HERE') {
+                throw new Error("API_BASE_URL is not configured. Please deploy the stack and update the URL in the index.html file.");
+            }
+            const url = `${API_BASE_URL}`; // Base URL already includes the action via the POST body
+            
+            // Set up exponential backoff for retries
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-Id': userId, // Pass userId for session tracking
+                        },
+                        body: JSON.stringify({ ...payload, action: action })
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < 2) {
+                        // Rate limit error, wait and retry
+                        const delay = Math.pow(2, i) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; 
+                    } else {
+                        const errorBody = await response.json();
+                        throw new Error(errorBody.message || `API Error: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error("Fetch attempt failed:", error);
+                    if (i === 2) throw error; 
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        };
+
+
+        // --- HANDLERS ---
+
+        const handleUpload = async () => {
+            const pastedText = document.getElementById('resume-text-input').value.trim();
+            const resumeText = uploadedFileText || pastedText;
+
+            if (!resumeText) {
+                // Display a message box instead of alert()
+                const container = document.getElementById('app-container');
+                container.insertAdjacentHTML('afterbegin', `<div id="error-box-upload" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-2xl">
+                        <p class="font-bold text-lg text-red-600">Missing Resume Text</p>
+                        <p class="mt-2 text-gray-700">Please paste your resume content or upload a file to begin the critique.</p>
+                        <button onclick="document.getElementById('error-box-upload').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Got It</button>
+                    </div>
+                </div>`);
+                return;
+            }
+
+            currentStep = 'loading';
+            updateView();
+            storeUserId(userId); 
+
+            try {
+                // Note: We send the extracted text, whether it came from a paste or the mock file read.
+                const result = await sendRequest('upload_and_critique', { resumeText });
+                
+                questionsData = {
+                    critique: result.critique,
+                    questions: result.questions
+                };
+                currentStep = 'interrogation';
+            } catch (error) {
+                console.error("Upload/Critique failed:", error);
+                // Display error to the user without using alert()
+                const container = document.getElementById('app-container');
+                container.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg" role="alert">
+                    <p class="font-bold">Processing Error</p>
+                    <p class="text-sm">${error.message}. Please check console for details.</p>
+                    <button onclick="resetApp()" class="mt-2 text-sm text-red-500 underline">Try Again</button>
+                </div>`;
+                currentStep = 'error';
+            } finally {
+                // Reset file state on successful upload or error before changing view
+                uploadedFileText = ''; 
+                if (currentStep !== 'error') updateView();
+            }
+        };
+
+        const handleInterrogationSubmit = async () => {
+            const form = document.getElementById('interrogation-form');
+            const userAnswers = {};
+            let allAnswered = true;
+
+            questionsData.questions.forEach((q, index) => {
+                const answer = form.elements[`answer-${index}`].value.trim();
+                if (!answer) {
+                    allAnswered = false;
+                }
+                userAnswers[q] = answer;
+            });
+
+            if (!allAnswered) {
+                 // Display a message box instead of alert()
+                const container = document.getElementById('app-container');
+                container.insertAdjacentHTML('afterbegin', `<div id="error-box" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
+                    <div class="bg-white p-6 rounded-lg shadow-2xl">
+                        <p class="font-bold text-lg text-red-600">Hold On!</p>
+                        <p class="mt-2 text-gray-700">Please answer all questions with specific, quantified details to generate the best result.</p>
+                        <button onclick="document.getElementById('error-box').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Got It</button>
+                    </div>
+                </div>`);
+                return;
+            }
+
+            currentStep = 'loading';
+            updateView();
+
+            try {
+                const result = await sendRequest('remediate_and_preview', { userAnswers });
+                optimizedPreview = result.preview_content;
+                currentStep = 'preview';
+            } catch (error) {
+                console.error("Remediation failed:", error);
+                // Handle error
+                currentStep = 'interrogation'; 
+            } finally {
+                updateView();
+            }
+        };
+
+        const handlePayment = async () => {
+            // --- PHASE 1 MOCK PAYMENT FLOW ---
+            // We skip the payment gateway integration for this POC.
+            
+            currentStep = 'loading';
+            updateView();
+
+            try {
+                // Call the API endpoint which will mock the payment success and update DynamoDB status
+                const result = await sendRequest('purchase_complete', { userId });
+                
+                if (result.status === 'SUCCESS') {
+                    // The server returns the final content
+                    optimizedPreview = result.final_document_content;
+                    currentStep = 'success';
+                } else {
+                    // This handles server-side denial (e.g., if a free pass limit was hit)
+                     // Display a message box instead of alert()
+                    const container = document.getElementById('app-container');
+                    container.insertAdjacentHTML('afterbegin', `<div id="error-box-purchase" class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-2xl">
+                            <p class="font-bold text-lg text-red-600">Limit Reached</p>
+                            <p class="mt-2 text-gray-700">${result.message || "This free beta offer has a limit per user. Please wait for the paid version."}</p>
+                            <button onclick="document.getElementById('error-box-purchase').remove()" class="mt-4 w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Close</button>
+                        </div>
+                    </div>`);
+                    currentStep = 'preview'; // Stay on the preview screen
+                }
+            } catch (error) {
+                console.error("Purchase confirmation failed:", error);
+                // Handle generic errors
+                currentStep = 'preview'; 
+            } finally {
+                updateView();
+            }
+        };
+
+        const resetApp = () => {
+             // Generate a new UUID for a fresh session
+            storeUserId(crypto.randomUUID()); 
+            currentStep = 'upload';
+            questionsData = [];
+            optimizedPreview = '';
+            uploadedFileText = ''; // Reset file text state
+            updateView();
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', updateView);
+    </script>
+</body>
+</html>
