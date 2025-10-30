@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- PDF.js library for client-side PDF text extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
@@ -118,14 +118,18 @@
     </div>
 
     <script type="module">
-        // Import PDF.js modules
+        // Access pdfjsLib using the global window object since the main script is no longer a module import
         const pdfjsLib = window.pdfjsLib;
 
         // Set up PDF.js worker path
         // IMPORTANT: The worker path must be set for pdf.js to function
-        const PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
+        const PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // This check ensures pdfjsLib is available before trying to configure it.
         if (pdfjsLib) {
             pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
+        } else {
+            console.error("PDF.js library failed to load.");
         }
 
         // Global state to manage the app flow and data
@@ -151,11 +155,10 @@
         
         // --- API & Core Logic ---
 
-        // Mock function for API Gateway URL (replace with actual endpoint if available)
+        // Function for API Gateway URL, now using the actual endpoint
         function getApiGatewayUrl() {
-            // Placeholder: Assume the lambda is accessible via a path, or use a predefined mock URL
-            // If the environment provides a real API URL, use that here.
-            return 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/'; 
+            // Using the actual Lambda API Gateway URL provided by the user.
+            return 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/';
         }
 
         // Centralized fetch utility with backoff and error handling (similar to Python Lambda)
@@ -201,6 +204,9 @@
         // --- File Upload Logic ---
 
         async function handleFileUpload(file) {
+            if (!pdfjsLib) {
+                throw new Error('PDF processing library not available. Please try pasting text instead.');
+            }
             if (file.type !== 'application/pdf') {
                 throw new Error('Unsupported file type. Please upload a PDF file.');
             }
@@ -417,8 +423,7 @@
         const downloadButton = document.getElementById('download-button');
         if (downloadButton) {
             downloadButton.addEventListener('click', () => {
-                // IMPORTANT: Use a custom UI element instead of alert() in production apps.
-                // Keeping this for mock purposes based on previous instruction context.
+                // Using a custom UI element is preferred over alert() for production.
                 alert('In a production app, this would trigger payment and final download.')
             });
         }
