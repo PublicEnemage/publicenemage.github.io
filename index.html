@@ -3,60 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Career Catalyst</title>
+    <title>Career Catalyst: Resume Optimizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f9fb;
-            color: #1f2937;
-        }
-        .step-card {
-            min-height: 250px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        .stage-active {
-            box-shadow: 0 0 0 3px #10b981; /* Tailwind emerald-500 */
-        }
-        .btn-primary {
-            background-color: #10b981;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-        .btn-primary:hover:not(:disabled) {
-            background-color: #059669;
-        }
-        .btn-primary:disabled {
-            background-color: #a7f3d0;
-            cursor: not-allowed;
-        }
-        .input-text {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-            border-radius: 6px;
-            width: 100%;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid white;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        .stage-card { min-height: 400px; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .disabled-overlay { pointer-events: none; opacity: 0.5; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 sm:p-8">
 
-    <!-- Global Variables and API Setup (Must be before any function calls) -->
+    <!-- Main Application Container -->
+    <div id="app" class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">
+            Career Catalyst
+        </h1>
+        <p class="text-gray-600 mb-8">
+            Optimize your resume with AI-driven critiques and quantified improvements.
+        </p>
+
+        <!-- Stage Navigation -->
+        <div id="stage-nav" class="flex space-x-2 text-sm text-gray-500 mb-6">
+            <span id="nav-1" class="font-bold text-blue-600">Stage 1: Critique</span>
+            <span>&raquo;</span>
+            <span id="nav-2">Stage 2: Interrogate</span>
+            <span>&raquo;</span>
+            <span id="nav-3">Stage 3: Optimize & Download</span>
+        </div>
+        
+        <!-- User ID Display (Crucial for multi-user context) -->
+        <div class="text-xs font-mono text-gray-500 mb-4 p-2 bg-gray-100 rounded-lg">
+            User ID: <span id="user-id-display">Loading...</span> | Auth Status: <span id="auth-status-display" class="text-red-500">Connecting...</span>
+        </div>
+
+        <!-- Stage Containers -->
+        <div id="stage-1-critique" class="stage-card bg-white p-6 rounded-xl shadow-lg border border-gray-200 fade-in">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">1. Paste Your Resume</h2>
+            <textarea id="resume-input" class="w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150" placeholder="Paste your resume text here. For best results, focus on the professional experience section."></textarea>
+            
+            <div id="s1-message" class="mt-4 p-3 bg-yellow-100 text-yellow-800 rounded-lg hidden"></div>
+            
+            <button onclick="window.startCritique()" id="critique-button" class="w-full mt-4 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition duration-150 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <div id="s1-loading" class="spinner hidden mr-2"></div>
+                Get AI Critique & Questions
+            </button>
+        </div>
+
+        <div id="stage-2-interrogation" class="stage-card bg-white p-6 rounded-xl shadow-lg border border-gray-200 mt-6 hidden fade-in">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">2. Answer the AI's Questions</h2>
+            <div id="critique-summary" class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                <p class="font-bold text-blue-800 mb-2">Critique Summary:</p>
+                <p id="critique-text" class="text-blue-700 italic"></p>
+            </div>
+            
+            <p class="mb-4 text-gray-600">The AI needs specific, quantifiable results to rewrite your experience. Answer these questions based on measurable impact you had in each role.</p>
+            
+            <div id="question-list">
+                <!-- Questions will be rendered here -->
+            </div>
+
+            <div id="s2-message" class="mt-4 p-3 bg-red-100 text-red-800 rounded-lg hidden"></div>
+
+            <button onclick="window.remediateAndPreview()" id="remediate-button" class="w-full mt-6 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition duration-150 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <div id="s2-loading" class="spinner hidden mr-2"></div>
+                Generate Optimized Resume Preview
+            </button>
+        </div>
+        
+        <div id="stage-3-download" class="stage-card bg-white p-6 rounded-xl shadow-lg border border-gray-200 mt-6 hidden fade-in">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">3. Final Review & Download</h2>
+            
+            <div id="resume-preview-container" class="border border-gray-300 p-6 rounded-lg bg-gray-50 mb-6 max-h-96 overflow-y-auto">
+                <p class="font-bold text-lg text-gray-800 mb-2">Optimized Resume Preview</p>
+                <div id="resume-preview">
+                    <!-- Final optimized content will be rendered here -->
+                </div>
+            </div>
+            
+            <div id="s3-message" class="mt-4 p-3 bg-green-100 text-green-800 rounded-lg hidden"></div>
+
+            <p class="text-gray-600 mb-4">You have reviewed your optimized resume. Click below to claim your free beta download.</p>
+
+            <button onclick="window.purchaseComplete()" id="download-button" class="w-full mt-4 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition duration-150 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                <div id="s3-loading" class="spinner hidden mr-2"></div>
+                Claim Free Final Document (POC)
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Firebase Script (Imported as a module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
@@ -65,543 +106,301 @@
             signInWithCustomToken, 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            getDoc, 
-            updateDoc, 
-            onSnapshot,
-            setLogLevel 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- GLOBAL APP STATE (Managed by the module scope) ---
+        let app = null;
+        let auth = null;
+        window.userId = null; 
+        window.isAuthReady = false; 
 
-        // Global state variables
-        window.apiEndpoint = 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/';
-        window.userId = null;
-        window.db = null;
-        window.auth = null;
-        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const API_ENDPOINT = "https://your-api-gateway-url/prod/process"; // Placeholder - Replace with actual URL
 
-        // UI Element references
-        window.stage1Content = document.getElementById('stage1-content');
-        window.stage2Content = document.getElementById('stage2-content');
-        window.stage3Content = document.getElementById('stage3-content');
-        window.stage4Content = document.getElementById('stage4-content');
-        window.loadingOverlay = document.getElementById('loading-overlay');
-        window.userIdDisplay = document.getElementById('user-id-display');
+        // --- CORE UTILITIES ---
 
-        // Status Constants
-        window.STATUS_CRITIQUE_READY = 'CRITIQUE_READY';
-        window.STATUS_PREVIEW_READY = 'PREVIEW_READY';
-        window.STATUS_PAID_FINAL_READY = 'PAID_FINAL_READY';
+        function updateStatus(status, message, type = 'info', stage = 1) {
+            const el = document.getElementById(`s${stage}-message`);
+            if (el) {
+                el.textContent = message;
+                el.className = `mt-4 p-3 rounded-lg ${type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+                el.classList.remove('hidden');
+            }
+        }
+
+        function setLoading(stage, isLoading) {
+            const button = document.getElementById(
+                stage === 1 ? 'critique-button' : 
+                stage === 2 ? 'remediate-button' : 
+                'download-button'
+            );
+            const spinner = document.getElementById(`s${stage}-loading`);
+            
+            if (button && spinner) {
+                button.disabled = isLoading || !window.isAuthReady;
+                spinner.classList.toggle('hidden', !isLoading);
+                button.innerHTML = isLoading 
+                    ? `<div class="spinner mr-2"></div> ${stage === 1 ? 'Critiquing...' : stage === 2 ? 'Optimizing...' : 'Processing...'}`
+                    : (stage === 1 ? 'Get AI Critique & Questions' : stage === 2 ? 'Generate Optimized Resume Preview' : 'Claim Free Final Document (POC)');
+            }
+        }
 
         /**
-         * Initializes Firebase and authenticates the user.
+         * @description The CORE function for all backend calls. It ensures the User ID is present.
+         * @param {string} action The Lambda action name.
+         * @param {object} body The request payload.
+         * @returns {Promise<object>} The JSON response body.
          */
-        window.setupFirebase = async () => {
-            try {
-                // Parse required globals
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        window.apiCall = async (action, body) => {
+            if (!window.userId) {
+                // This is the critical gate check that solves the second error.
+                // It ensures Firebase auth has completed before sending the request.
+                throw new Error("API call failed: User ID is not available (Authentication pending or failed).");
+            }
 
+            const payload = { action, ...body };
+
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // CRITICAL: Pass the authenticated user ID to the backend
+                    'X-User-Id': window.userId 
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                const errorMessage = data.message || `API call failed with status: ${response.status}`;
+                throw new Error(errorMessage);
+            }
+            return data;
+        };
+
+        // --- FIREBASE INITIALIZATION & AUTHENTICATION (FIXED) ---
+        
+        window.setupFirebase = () => {
+            try {
+                // 1. Load config safely (FIX for 'projectId' not provided)
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                
                 if (!firebaseConfig || !firebaseConfig.projectId) {
-                    console.error("Firebase Initialization Failed: 'projectId' not provided in firebase.initializeApp.");
+                    console.error("Firebase Initialization Failed: '__firebase_config' is missing or malformed.");
+                    document.getElementById('auth-status-display').textContent = 'Config Error';
                     return;
                 }
-                
-                // Initialize services
-                const app = initializeApp(firebaseConfig);
-                window.auth = getAuth(app);
-                window.db = getFirestore(app);
-                
-                // Set Firestore log level for debugging
-                setLogLevel('error');
 
-                // Authentication Listener
-                onAuthStateChanged(window.auth, async (user) => {
+                // 2. Initialize App
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                
+                // 3. Set up Auth State Listener (CRITICAL for timing)
+                onAuthStateChanged(auth, async (user) => {
                     if (user) {
+                        // User successfully signed in or session restored
                         window.userId = user.uid;
-                        window.userIdDisplay.textContent = `User ID: ${window.userId}`;
-                        console.log(`Firebase authenticated. User ID set to: ${window.userId}`);
-                        // Once authenticated, attempt to load data for the current user
-                        await window.loadUserData(user.uid);
+                        window.isAuthReady = true;
+                        document.getElementById('user-id-display').textContent = user.uid;
+                        document.getElementById('auth-status-display').textContent = 'Connected';
+                        document.getElementById('auth-status-display').className = 'text-green-600';
+                        document.getElementById('critique-button').disabled = false; // Enable button now that auth is ready
+                        console.log(`Firebase Auth Ready. User ID: ${window.userId}`);
                     } else {
-                        // Attempt to sign in if not already authenticated
+                        // User signed out, or initial sign-in attempt failed.
+                        window.userId = null;
+                        document.getElementById('auth-status-display').textContent = 'Attempting Sign In...';
+
+                        // 4. Perform initial sign-in based on available token
                         try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(window.auth, initialAuthToken);
+                            if (authToken) {
+                                await signInWithCustomToken(auth, authToken);
                             } else {
-                                await signInAnonymously(window.auth);
+                                await signInAnonymously(auth);
                             }
-                        } catch (error) {
-                            console.error("Firebase Authentication Failed:", error);
+                        } catch (e) {
+                            console.error("Firebase Sign-In Failed:", e);
+                            document.getElementById('auth-status-display').textContent = 'Sign In Failed';
+                            document.getElementById('auth-status-display').className = 'text-red-500';
                         }
                     }
                 });
 
-            } catch (error) {
-                console.error("Error setting up Firebase:", error);
+            } catch (e) {
+                console.error("Firebase Initialization Failed:", e);
+                document.getElementById('auth-status-display').textContent = 'Init Error';
             }
         };
 
-        /**
-         * Generic API Call with exponential backoff and required headers.
-         */
-        window.apiCall = async (action, data = {}, retries = 3) => {
-            if (!window.userId) {
-                throw new Error("API call failed: User ID is not available (Authentication pending or failed).");
-            }
+        // --- STAGE LOGIC ---
+
+        function navigateToStage(stage) {
+            document.querySelectorAll('[id^="stage-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`stage-${stage}-critique`).classList.remove('hidden');
             
-            const payload = {
-                action: action,
-                ...data
-            };
+            document.querySelectorAll('[id^="nav-"]').forEach(el => el.classList.remove('font-bold', 'text-blue-600'));
+            document.getElementById(`nav-${stage}`).classList.add('font-bold', 'text-blue-600');
+            
+            if (stage === 2) document.getElementById('stage-2-interrogation').classList.remove('hidden');
+            if (stage === 3) document.getElementById('stage-3-download').classList.remove('hidden');
+        }
 
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(window.apiEndpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-Id': window.userId // CRITICAL FIX: Ensure header is included
-                        },
-                        body: JSON.stringify(payload)
-                    });
+        function renderQuestions(roles) {
+            const list = document.getElementById('question-list');
+            list.innerHTML = ''; // Clear previous content
 
-                    if (!response.ok) {
-                        const errorBody = await response.json().catch(() => ({ message: 'No detailed error message.' }));
-                        throw new Error(`API returned status ${response.status}: ${JSON.stringify(errorBody)}`);
-                    }
+            JSON.parse(roles).forEach((role, roleIndex) => {
+                const roleDiv = document.createElement('div');
+                roleDiv.className = 'mb-6 p-4 border border-gray-200 rounded-lg';
+                roleDiv.innerHTML = `<p class="font-semibold text-lg text-gray-700 mb-3">${role.title} at ${role.company}</p>`;
+                
+                role.role_questions.forEach((question, qIndex) => {
+                    const id = `answer-${roleIndex}-${qIndex}`;
+                    const inputGroup = document.createElement('div');
+                    inputGroup.className = 'mb-4';
+                    inputGroup.innerHTML = `
+                        <label for="${id}" class="block text-sm font-medium text-gray-700 mb-1">${qIndex + 1}. ${question}</label>
+                        <textarea id="${id}" data-role="${role.title}" data-company="${role.company}" class="w-full p-3 border border-gray-300 rounded-lg focus:border-indigo-500" rows="2" placeholder="Your quantifiable achievement/answer"></textarea>
+                    `;
+                    roleDiv.appendChild(inputGroup);
+                });
+                list.appendChild(roleDiv);
+            });
+            
+            document.getElementById('remediate-button').disabled = false;
+        }
 
-                    return await response.json();
+        function renderPreview(previewContentJsonString) {
+            const data = JSON.parse(previewContentJsonString);
+            const previewEl = document.getElementById('resume-preview');
+            previewEl.innerHTML = '';
+            
+            // Name and Contact
+            previewEl.innerHTML += `<div class="text-center mb-4 border-b pb-2"><h3 class="text-2xl font-bold">${data.name}</h3><p class="text-sm text-gray-600">${data.contact}</p></div>`;
 
-                } catch (error) {
-                    console.warn(`Attempt ${i + 1} failed: ${error}`);
-                    if (i === retries - 1) {
-                        throw error;
-                    }
-                    const delay = Math.pow(2, i) * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-            }
-        };
+            // Summary
+            previewEl.innerHTML += `<div class="mb-4"><p class="font-bold text-gray-700 uppercase tracking-wider text-sm">Summary</p><p class="text-sm">${data.summary}</p></div>`;
+
+            // Experience
+            previewEl.innerHTML += `<div class="mb-4"><p class="font-bold text-gray-700 uppercase tracking-wider text-sm border-b-2 mt-4 pb-1">Experience</p></div>`;
+            
+            data.experience.forEach(role => {
+                let roleHtml = `<div class="mb-4">
+                    <p class="font-semibold text-base">${role.title}</p>
+                    <p class="text-sm italic text-gray-600">${role.company} | ${role.years}</p>
+                    <ul class="list-disc ml-5 text-sm mt-1 space-y-1">`;
+                role.bullets.forEach(bullet => {
+                    roleHtml += `<li>${bullet}</li>`;
+                });
+                roleHtml += `</ul></div>`;
+                previewEl.innerHTML += roleHtml;
+            });
+        }
         
-        // Expose function to global scope
-        window.setupFirebase();
-
-        /**
-         * Main function to start the critique process (Stage 1).
-         */
         window.startCritique = async () => {
-            const resumeTextarea = document.getElementById('resume-text');
-            const resumeText = resumeTextarea.value.trim();
-            const button = document.getElementById('critique-button');
-            const buttonContent = button.innerHTML;
+            setLoading(1, true);
+            document.getElementById('s1-message').classList.add('hidden');
+            const resumeText = document.getElementById('resume-input').value;
 
             if (resumeText.length < 50) {
-                alert('Please paste a substantial portion of your resume (at least 50 characters).');
+                updateStatus('error', 'Please paste at least 50 characters of resume text to get a meaningful critique.', 'error', 1);
+                setLoading(1, false);
                 return;
             }
 
-            button.disabled = true;
-            button.innerHTML = '<div class="spinner"></div> Processing...';
-            
             try {
                 const response = await window.apiCall('upload_and_critique', { resumeText });
                 
-                // Save the initial state to the database for persistence across sessions (optional but good practice)
-                const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
-                await setDoc(docRef, { 
-                    status: window.STATUS_CRITIQUE_READY,
-                    resumeText: resumeText,
-                    critique: response.summary_critique,
-                    questions: JSON.stringify(response.roles),
-                    vocation: response.vocation || 'Professional',
-                    createdAt: Date.now()
-                }, { merge: true });
-
-                window.loadCritique(response);
+                // Populate Stage 2 data
+                document.getElementById('critique-text').innerHTML = response.summary_critique;
+                renderQuestions(JSON.stringify(response.roles)); // Pass the JSON string of roles
+                
+                updateStatus('success', `Critique complete! Vocation identified as: ${response.vocation}. Please proceed to Stage 2.`, 'success', 1);
+                
+                // Navigate to Stage 2
+                navigateToStage(2);
 
             } catch (error) {
                 console.error("Critique initiation failed:", error);
-                alert(`Failed to start critique: ${error.message}`);
+                updateStatus('error', `Critique initiation failed: ${error.message}`, 'error', 1);
             } finally {
-                button.disabled = false;
-                button.innerHTML = buttonContent;
+                setLoading(1, false);
             }
         };
-        
-        /**
-         * Renders the Critique and Questions (Stage 2).
-         */
-        window.loadCritique = (data) => {
-            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
-            document.getElementById('stage2-card').classList.add('stage-active');
-            
-            // Populate Stage 2
-            const critiqueHtml = `
-                <h2 class="text-xl font-bold mb-3 text-emerald-700">Vocation Profile: ${data.vocation || 'Professional'}</h2>
-                <h3 class="text-lg font-semibold mb-2">Macro Profile</h3>
-                <p class="mb-4 text-gray-700">${data.macro_profile || 'No macro profile provided.'}</p>
-                <h3 class="text-lg font-semibold mb-4">Summary Critique:</h3>
-                <div class="p-3 bg-red-50 border border-red-200 rounded-lg mb-6 text-red-700">
-                    ${data.summary_critique || 'No summary critique provided.'}
-                </div>
-            `;
-            
-            const roles = JSON.parse(data.questions || '[]');
-            let questionsHtml = '<h3 class="text-xl font-bold mb-4">Interrogation Stage: Turn Duties into Achievements</h3>';
-            questionsHtml += '<div id="interrogation-form">';
 
-            roles.forEach((role, index) => {
-                questionsHtml += `
-                    <div class="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
-                        <h4 class="font-bold text-lg mb-2">${role.title} at ${role.company}</h4>
-                        <p class="text-sm text-gray-500 mb-3">Answer these questions to add quantifiable results to this role:</p>
-                        ${role.role_questions.map((q, qIndex) => `
-                            <div class="mb-3">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">${q}</label>
-                                <textarea id="answer-${index}-${qIndex}" rows="2" class="input-text resize-none" placeholder="e.g., I reduced database query time by 60% by optimizing the indexing strategy..."></textarea>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            });
-
-            questionsHtml += `</div>
-                <button id="remediate-button" onclick="window.remediateAndPreview()" class="btn-primary w-full mt-4">
-                    Generate Optimized Resume Preview (Stage 3)
-                </button>
-            `;
-
-            window.stage2Content.innerHTML = critiqueHtml + questionsHtml;
-            window.stage1Content.style.display = 'none';
-            window.stage2Content.style.display = 'block';
-            window.stage3Content.style.display = 'none';
-            window.stage4Content.style.display = 'none';
-        };
-
-        /**
-         * Collects answers and requests the final preview (Stage 3).
-         */
         window.remediateAndPreview = async () => {
-            const button = document.getElementById('remediate-button');
-            button.disabled = true;
-            button.innerHTML = '<div class="spinner"></div> Generating Preview...';
+            setLoading(2, true);
+            document.getElementById('s2-message').classList.add('hidden');
             
-            // 1. Get current role questions from Firestore
-            const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) {
-                 alert("Session data lost. Please start over.");
-                 return;
-            }
-            const data = docSnap.data();
-            const roles = JSON.parse(data.questions);
-
-            // 2. Collect user answers
+            const answerElements = document.querySelectorAll('#question-list textarea');
             const userAnswers = [];
-            roles.forEach((role, rIndex) => {
-                const roleAnswers = [];
-                // Collect answers for this specific role
-                for (let qIndex = 0; qIndex < role.role_questions.length; qIndex++) {
-                    const answerId = `answer-${rIndex}-${qIndex}`;
-                    const answerText = document.getElementById(answerId).value.trim();
-                    if (answerText) {
-                         roleAnswers.push(answerText);
-                    }
+            
+            // Collect answers and validate
+            let allAnswered = true;
+            answerElements.forEach(el => {
+                if (el.value.trim() === '') {
+                    allAnswered = false;
                 }
-
-                if (roleAnswers.length > 0) {
-                     userAnswers.push({
-                        role: role.title,
-                        company: role.company,
-                        user_response: roleAnswers.join('. ') // Combine all answers for the role
-                    });
-                }
+                userAnswers.push({
+                    role: el.getAttribute('data-role'),
+                    company: el.getAttribute('data-company'),
+                    user_response: el.value.trim()
+                });
             });
 
-            if (userAnswers.length === 0) {
-                alert("Please answer at least a few questions before proceeding.");
-                button.disabled = false;
-                button.innerHTML = 'Generate Optimized Resume Preview (Stage 3)';
+            if (!allAnswered) {
+                updateStatus('error', 'Please answer all of the AI\'s questions to generate an optimized preview.', 'error', 2);
+                setLoading(2, false);
                 return;
             }
 
             try {
-                // 3. Call API to get final optimized content
-                const response = await window.apiCall('remediate_and_preview', { 
-                    userAnswers: JSON.stringify(userAnswers) // Send the structured array as a string
-                });
+                // userAnswers must be a JSON string when sent in the body
+                const response = await window.apiCall('remediate_and_preview', { userAnswers: JSON.stringify(userAnswers) });
                 
-                // 4. Update Firestore with new status and content
-                await updateDoc(docRef, { 
-                    status: window.STATUS_PREVIEW_READY,
-                    userAnswers: JSON.stringify(userAnswers),
-                    previewContent: response.preview_content,
-                    updatedAt: Date.now()
-                });
-
-                window.loadPreview(JSON.parse(response.preview_content));
+                renderPreview(response.preview_content);
+                
+                updateStatus('success', 'Preview generated! Review the optimized document and proceed to Stage 3.', 'success', 2);
+                
+                // Navigate to Stage 3
+                navigateToStage(3);
 
             } catch (error) {
                 console.error("Remediation failed:", error);
-                alert(`Failed to generate preview: ${error.message}`);
+                updateStatus('error', `Remediation failed: ${error.message}`, 'error', 2);
             } finally {
-                button.disabled = false;
-                button.innerHTML = 'Generate Optimized Resume Preview (Stage 3)';
+                setLoading(2, false);
             }
         };
 
-        /**
-         * Renders the final optimized preview (Stage 3).
-         */
-        window.loadPreview = (optimizedData) => {
-            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
-            document.getElementById('stage3-card').classList.add('stage-active');
-
-            const experienceHtml = optimizedData.experience.map(role => `
-                <div class="mb-4">
-                    <h4 class="font-bold text-lg">${role.title}</h4>
-                    <p class="text-sm text-gray-500 mb-2">${role.company} | ${role.years}</p>
-                    <ul class="list-disc ml-5 space-y-1 text-gray-700">
-                        ${role.bullets.map(b => `<li>${b}</li>`).join('')}
-                    </ul>
-                </div>
-            `).join('');
-
-            const previewHtml = `
-                <div class="p-6 bg-white border border-emerald-500 rounded-xl shadow-lg">
-                    <div class="text-center mb-6">
-                        <h1 class="text-3xl font-extrabold text-gray-900">${optimizedData.name}</h1>
-                        <p class="text-sm text-gray-500">${optimizedData.contact}</p>
-                    </div>
-
-                    <div class="mb-6">
-                        <h2 class="text-xl font-bold border-b-2 border-emerald-500 pb-1 mb-2 text-emerald-700">PROFESSIONAL SUMMARY</h2>
-                        <p class="text-gray-700">${optimizedData.summary}</p>
-                    </div>
-
-                    <div class="mb-6">
-                        <h2 class="text-xl font-bold border-b-2 border-emerald-500 pb-1 mb-3 text-emerald-700">EXPERIENCE</h2>
-                        ${experienceHtml}
-                    </div>
-
-                    <p class="text-center text-sm text-gray-500 mt-6 italic">
-                        (Skills and Education sections omitted in this preview for brevity.)
-                    </p>
-                </div>
-                
-                <div class="mt-6 text-center">
-                    <button id="purchase-button" onclick="window.completePurchase()" class="btn-primary text-lg px-8 py-3">
-                        Mock Purchase / Free Download (Stage 4)
-                    </button>
-                    <p class="text-sm text-gray-600 mt-2">
-                        Note: This is a beta test. You get one free download per session.
-                    </p>
-                </div>
-            `;
-            
-            window.stage3Content.innerHTML = previewHtml;
-            window.stage1Content.style.display = 'none';
-            window.stage2Content.style.display = 'none';
-            window.stage3Content.style.display = 'block';
-            window.stage4Content.style.display = 'none';
-        };
-
-        /**
-         * Mock payment complete and final download (Stage 4).
-         */
-        window.completePurchase = async () => {
-            const button = document.getElementById('purchase-button');
-            button.disabled = true;
-            button.innerHTML = '<div class="spinner"></div> Finalizing Download...';
+        window.purchaseComplete = async () => {
+            setLoading(3, true);
+            document.getElementById('s3-message').classList.add('hidden');
 
             try {
-                const response = await window.apiCall('purchase_complete');
-                
+                const response = await window.apiCall('purchase_complete', {});
+
                 if (response.status === 'LIMIT_EXCEEDED') {
-                    alert(response.message);
-                    return;
+                     updateStatus('error', response.message, 'error', 3);
+                } else if (response.status === 'SUCCESS') {
+                    // Final content is already rendered, just show the success message
+                    updateStatus('success', `Download successful! Your final document has been secured. Content ID: ${window.userId}`, 'success', 3);
                 }
 
-                // Update Firestore to reflect final status
-                const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
-                await updateDoc(docRef, { status: window.STATUS_PAID_FINAL_READY, updatedAt: Date.now() });
-
-                window.loadFinalDocument(JSON.parse(response.final_document_content));
-
             } catch (error) {
-                console.error("Purchase/Download failed:", error);
-                alert(`Failed to complete transaction: ${error.message}`);
+                console.error("Download failed:", error);
+                updateStatus('error', `Download failed: ${error.message}`, 'error', 3);
             } finally {
-                button.disabled = false;
-                button.innerHTML = 'Mock Purchase / Free Download (Stage 4)';
+                setLoading(3, false);
             }
         };
 
-        /**
-         * Renders the final downloadable document (Stage 4).
-         */
-        window.loadFinalDocument = (optimizedData) => {
-            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
-            document.getElementById('stage4-card').classList.add('stage-active');
-            
-            const markdownContent = `
-**${optimizedData.name}** | ${optimizedData.contact}
-
----
-
-## PROFESSIONAL SUMMARY
-${optimizedData.summary}
-
----
-
-## PROFESSIONAL EXPERIENCE
-${optimizedData.experience.map(role => 
-    `### ${role.title}
-*${role.company}* | ${role.years}
-${role.bullets.map(b => `* ${b}`).join('\n')}`
-).join('\n\n')}
-
----
-*(Note: Skills and Education sections can be easily added to this format.)*
-`;
-
-            const finalHtml = `
-                <div class="p-6 bg-white border border-emerald-500 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-bold mb-4 text-emerald-700">🎉 Download Complete!</h2>
-                    <p class="mb-4">Your final, achievement-driven resume content is ready. You can copy the content below or download it as a text file.</p>
-                    
-                    <textarea id="final-markdown" class="input-text h-96 bg-gray-50 p-4 font-mono text-sm" readonly>${markdownContent}</textarea>
-                    
-                    <button onclick="window.copyToClipboard('final-markdown')" class="btn-primary mt-4">
-                        Copy Final Content
-                    </button>
-                    <button onclick="window.downloadFile(markdownContent)" class="btn-primary mt-4 ml-2">
-                        Download .txt File
-                    </button>
-                </div>
-            `;
-            
-            window.stage4Content.innerHTML = finalHtml;
-            window.stage1Content.style.display = 'none';
-            window.stage2Content.style.display = 'none';
-            window.stage3Content.style.display = 'none';
-            window.stage4Content.style.display = 'block';
-        };
-
-        /**
-         * Load user data on authentication to resume session.
-         */
-        window.loadUserData = async (uid) => {
-            if (!window.db) return;
-            const docRef = doc(window.db, "artifacts", window.appId, "users", uid, "sessions", "current");
-
-            // Use onSnapshot to listen for real-time updates (optional, but good practice)
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    console.log("Resuming session. Status:", data.status);
-                    
-                    switch (data.status) {
-                        case window.STATUS_CRITIQUE_READY:
-                            window.stage1Content.style.display = 'none';
-                            window.loadCritique({ 
-                                vocation: data.vocation, 
-                                macro_profile: 'Resumed session.', 
-                                summary_critique: data.critique, 
-                                questions: data.questions 
-                            });
-                            break;
-                        case window.STATUS_PREVIEW_READY:
-                            window.stage1Content.style.display = 'none';
-                            window.stage2Content.style.display = 'none';
-                            window.loadPreview(JSON.parse(data.previewContent));
-                            break;
-                        case window.STATUS_PAID_FINAL_READY:
-                            window.stage1Content.style.display = 'none';
-                            window.stage2Content.style.display = 'none';
-                            window.stage3Content.style.display = 'none';
-                            window.loadFinalDocument(JSON.parse(data.previewContent));
-                            break;
-                        default:
-                            // Stay in Stage 1
-                            window.stage1Content.style.display = 'block';
-                    }
-                } else {
-                    // Start in Stage 1
-                    window.stage1Content.style.display = 'block';
-                }
-            }, (error) => {
-                console.error("Error loading session data:", error);
-            });
-        };
-        
-        // Utility Functions (outside module imports)
-        window.copyToClipboard = (elementId) => {
-            const copyText = document.getElementById(elementId);
-            copyText.select();
-            document.execCommand('copy');
-            alert('Content copied to clipboard!');
-        };
-
-        window.downloadFile = (content) => {
-             const element = document.createElement('a');
-             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
-             element.setAttribute('download', 'optimized_resume.txt');
-             element.style.display = 'none';
-             document.body.appendChild(element);
-             element.click();
-             document.body.removeChild(element);
+        // --- Start the application ---
+        window.onload = () => {
+            window.setupFirebase();
+            // Initial navigation is handled by the default HTML structure (Stage 1 is visible)
         };
 
     </script>
-    <!-- End of Global Script Block -->
-
-    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">
-        Career Catalyst: Resume Optimizer
-    </h1>
-    <div class="text-center mb-6 p-2 bg-gray-100 rounded-lg text-sm text-gray-500">
-        <span id="user-id-display">Initializing User...</span>
-    </div>
-
-    <!-- Main Stages Container -->
-    <div class="max-w-4xl mx-auto">
-        
-        <!-- Stage Steps Indicator -->
-        <div class="flex justify-between items-center mb-8 text-sm font-medium">
-            <div id="stage1-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200 stage-active">1. Upload Draft</div>
-            <div id="stage2-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200">2. Interrogate</div>
-            <div id="stage3-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200">3. Preview</div>
-            <div id="stage4-card" class="step-card bg-white p-4 text-center w-1/4 border border-gray-200">4. Download</div>
-        </div>
-
-        <!-- Stage 1: Upload and Critique -->
-        <div id="stage1-content" class="bg-white p-6 rounded-xl shadow-md">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Stage 1: Paste Your Resume Draft</h2>
-            <p class="mb-4 text-gray-600">Paste your current resume draft into the box below. We will use AI to critique it and generate targeted questions to turn your job duties into quantifiable achievements.</p>
-            <textarea id="resume-text" rows="10" class="input-text mb-4 resize-none" placeholder="Paste your resume content here..."></textarea>
-            <button id="critique-button" onclick="startCritique()" class="btn-primary w-full text-lg">
-                Start Critique & Interrogation (Stage 2)
-            </button>
-        </div>
-
-        <!-- Stage 2: Interrogation (Critique and Questions) -->
-        <div id="stage2-content" class="bg-white p-6 rounded-xl shadow-md hidden">
-            <!-- Content dynamically loaded by loadCritique() -->
-        </div>
-
-        <!-- Stage 3: Preview -->
-        <div id="stage3-content" class="bg-white p-6 rounded-xl shadow-md hidden">
-            <!-- Content dynamically loaded by loadPreview() -->
-        </div>
-
-        <!-- Stage 4: Download -->
-        <div id="stage4-content" class="bg-white p-6 rounded-xl shadow-md hidden">
-            <!-- Content dynamically loaded by loadFinalDocument() -->
-        </div>
-        
-    </div>
 </body>
 </html>
