@@ -3,836 +3,605 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Optimizer</title>
+    <title>Career Catalyst</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- 
-        PDF.js Setup - Define the stable worker source URL globally.
-    -->
-    <script>
-        window.PDF_WORKER_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    </script>
-
-    <!-- PDF.js library for client-side PDF text extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
-        .stage-card { transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
-        .hidden-stage { display: none; }
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            color: #1f2937;
+        }
+        .step-card {
+            min-height: 250px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .stage-active {
+            box-shadow: 0 0 0 3px #10b981; /* Tailwind emerald-500 */
+        }
+        .btn-primary {
+            background-color: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #059669;
+        }
+        .btn-primary:disabled {
+            background-color: #a7f3d0;
+            cursor: not-allowed;
+        }
+        .input-text {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            border-radius: 6px;
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
         }
-        /* Custom Styles for Resume Templates */
-        .resume-template { 
-            white-space: pre-wrap; 
-            min-height: 400px;
-            padding: 24px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            background-color: #fff;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-        .template-modern h3 { font-size: 1.5rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; margin-top: 16px; }
-        .template-professional h3 { font-size: 1.25rem; font-weight: 600; color: #1f2937; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px; margin-top: 12px; }
-        .template-classic h3 { font-size: 1.2rem; font-weight: 700; color: #000; text-decoration: underline; margin-top: 10px; }
-        .template-classic { line-height: 1.5; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body class="p-4 sm:p-8 min-h-screen flex items-center justify-center">
+<body class="p-4 md:p-8">
 
-    <!-- Resume Session Modal (Hidden by Default) -->
-    <div id="resume-modal" class="modal-overlay hidden">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-md">
-            <h3 class="text-xl font-bold text-indigo-700 mb-4">Resume Saved Work</h3>
-            <p class="text-gray-700 mb-6">It looks like you have saved work for this application. Would you like to resume your session or start a new one?</p>
-            <div class="flex justify-end space-x-3">
-                <button id="start-new-session" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-150">
-                    Start New Session
-                </button>
-                <button id="resume-session" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150">
-                    Resume Work
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Main Container -->
-    <div id="app-container" class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 sm:p-10 border border-gray-100">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Quantifiable Resume Optimizer</h1>
-            <p class="text-gray-500">Transform passive duties into powerful, measurable achievements.</p>
-            
-            <div id="progress-indicator" class="mt-4 p-3 rounded-lg text-sm text-indigo-700 bg-indigo-100 hidden">
-                <p>✅ Progress Saved: You are on Role <span id="saved-role-index"></span> of <span id="saved-total-roles"></span>.</p>
-            </div>
-
-            <div id="loading-indicator" class="hidden mt-4">
-                <div class="flex items-center justify-center space-x-2">
-                    <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="loading-message" class="text-indigo-500 font-semibold">Initializing app...</span>
-                </div>
-            </div>
-            <div id="message-box" class="mt-4 p-3 rounded-lg text-sm text-red-700 bg-red-100 hidden"></div>
-        </header>
-
-        <!-- STAGE 1: UPLOAD / PASTE -->
-        <div id="stage-1" class="stage-card">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Step 1: Submit Your Current Resume</h2>
-
-            <!-- Disclaimer for Shared Computers -->
-            <div class="mb-4 p-3 border border-yellow-400 rounded-lg bg-yellow-50 text-sm text-yellow-800">
-                <p class="font-bold">⚠️ Privacy Notice:</p>
-                <p>Your progress is saved using an anonymous ID unique to this browser. If you are using a shared or public computer, please ensure you clear your browser's data after use to prevent others from accessing your session.</p>
-            </div>
-            
-            <div class="mb-4 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
-                <label for="resume-file" class="block text-gray-700 font-medium mb-2">Option A: Upload a PDF File</label>
-                <input type="file" id="resume-file" accept=".pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition duration-150"/>
-                <p class="text-xs text-gray-500 mt-1">Only PDF (.pdf) files are supported for file upload.</p>
-            </div>
-
-            <div class="relative flex py-5 items-center">
-                <div class="flex-grow border-t border-gray-300"></div>
-                <span class="flex-shrink mx-4 text-gray-400 text-sm font-medium">OR</span>
-                <div class="flex-grow border-t border-gray-300"></div>
-            </div>
-
-            <label for="resume-text" class="block text-gray-700 font-medium mb-2">Option B: Paste Resume Text</label>
-            <textarea id="resume-text" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="Paste your professional experience section here..."></textarea>
-            
-            <button id="analyze-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
-                Analyze and Start Guided Review
-            </button>
-        </div>
-
-        <!-- STAGE 2: MACRO CRITIQUE -->
-        <div id="stage-2" class="stage-card hidden-stage">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Step 2: Macro Analysis</h2>
-            <div id="macro-critique-content" class="space-y-4">
-                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <p class="text-sm font-semibold text-indigo-700 mb-1">Target Vocation:</p>
-                    <p id="vocation-output" class="text-lg font-bold text-indigo-800"></p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p class="text-sm font-semibold text-gray-700 mb-1">Career Profile:</p>
-                    <p id="macro-profile-output" class="text-base text-gray-800"></p>
-                </div>
-                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <p class="text-sm font-semibold text-red-700 mb-1">Primary Weakness:</p>
-                    <p id="summary-critique-output" class="text-base font-medium text-red-800"></p>
-                </div>
-            </div>
-            <button id="continue-interview-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
-                Continue to Role Breakdown & Interview
-            </button>
-        </div>
-
-        <!-- STAGE 3: ROLE-BY-ROLE INTERVIEW (Iterative) -->
-        <div id="stage-3" class="stage-card hidden-stage">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Step 3: Quantify Your Impact (Role <span id="current-role-index"></span> of <span id="total-roles"></span>)</h2>
-            
-            <!-- Current Role Title -->
-            <div class="p-4 mb-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p class="text-sm font-semibold text-yellow-700 mb-1">Current Role Focus:</p>
-                <p id="current-role-title" class="text-lg font-bold text-yellow-800"></p>
-            </div>
-
-            <!-- Questions and Single Response Area -->
-            <div id="role-questions-container" class="space-y-4 mb-6">
-                <!-- Questions will be injected here -->
-            </div>
-            
-            <label for="role-answers" class="block text-gray-700 font-medium mb-2">Your Answers (In detail, write down the numbers, projects, and outcomes):</label>
-            <textarea id="role-answers" rows="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="e.g., 'I successfully led the launch of Project X in Q3, which streamlined the client onboarding process. This reduced the average time from 48 hours to 12 hours, impacting 500 new accounts per month.'"></textarea>
-
-            <button id="submit-role-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-4">
-                Submit Answers for This Role & Continue
-            </button>
-        </div>
-        
-        <!-- STAGE 4: REMEDIATED PREVIEW -->
-        <div id="stage-4" class="stage-card hidden-stage">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Step 4: Optimized Draft Preview</h2>
-            <p class="text-gray-600 mb-4">Choose a template to format your new, impact-focused professional experience section:</p>
-            
-            <!-- Template Selection -->
-            <div class="mb-6 flex space-x-4">
-                <button data-template="modern" class="template-selector px-4 py-2 text-sm font-semibold rounded-lg border border-indigo-400 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition duration-150">Modern</button>
-                <button data-template="professional" class="template-selector px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150">Professional</button>
-                <button data-template="classic" class="template-selector px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150">Classic</button>
-            </div>
-            
-            <div id="remediated-content" class="resume-template template-modern">
-                <div class="text-center mb-4">
-                    <h1 id="preview-name" class="text-2xl font-bold">Candidate Name Placeholder</h1>
-                    <p id="preview-contact" class="text-sm text-gray-600">Contact Details Placeholder</p>
-                </div>
-                <h3 id="preview-section-title">Professional Experience</h3>
-                <div id="preview-experience-content" class="text-gray-800 text-sm leading-relaxed mt-2 space-y-4">
-                    <!-- Optimized content will be injected here -->
-                    <p class="text-gray-500 italic">Please complete the interview and generate the draft to see your content here.</p>
-                </div>
-            </div>
-            
-            <button id="download-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 mt-6">
-                Download Optimized Resume (Text File)
-            </button>
-            <p class="text-xs text-gray-500 mt-2">This feature downloads a highly structured, clean text file that can be easily copied into a word processor or professional template.</p>
-        </div>
-
-    </div>
-
+    <!-- Global Variables and API Setup (Must be before any function calls) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            updateDoc, 
+            onSnapshot,
+            setLogLevel 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Access pdfjsLib using the global window object.
-        const pdfjsLib = window.pdfjsLib;
+        // Global state variables
+        window.apiEndpoint = 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/';
+        window.userId = null;
+        window.db = null;
+        window.auth = null;
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // CRITICAL PDF.js WORKER FIX: Enforce the worker path immediately 
-        // using the stable version path defined globally.
-        if (pdfjsLib) {
-             pdfjsLib.GlobalWorkerOptions.workerSrc = window.PDF_WORKER_SRC;
-        }
+        // UI Element references
+        window.stage1Content = document.getElementById('stage1-content');
+        window.stage2Content = document.getElementById('stage2-content');
+        window.stage3Content = document.getElementById('stage3-content');
+        window.stage4Content = document.getElementById('stage4-content');
+        window.loadingOverlay = document.getElementById('loading-overlay');
+        window.userIdDisplay = document.getElementById('user-id-display');
 
-        // Global state to manage the app flow and data
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
+        // Status Constants
+        window.STATUS_CRITIQUE_READY = 'CRITIQUE_READY';
+        window.STATUS_PREVIEW_READY = 'PREVIEW_READY';
+        window.STATUS_PAID_FINAL_READY = 'PAID_FINAL_READY';
 
-        const appState = {
-            currentStage: 1,
-            resumeText: '',
-            critiqueData: null,
-            roleIndex: 0,
-            allAnswers: [],
-            vocation: 'General Professional',
-            remediatedData: null, // Stores the structured JSON from the remediation step
-            currentTemplate: 'modern' // Default template
-        };
-        
-        // --- Template Rendering Functions ---
-        
-        // Templates define how the structured data is presented in the preview
-        const resumeTemplates = {
-            modern: (data) => `
-                <div class="text-center mb-4">
-                    <h1 class="text-2xl font-bold">${data.name || 'Your Name Here'}</h1>
-                    <p class="text-sm text-gray-600">${data.contact || 'Email | Phone | LinkedIn'}</p>
-                </div>
-                <h3>Professional Experience</h3>
-                ${data.experience.map(role => `
-                    <div class="mt-4">
-                        <p class="font-bold">${role.title}, ${role.company} (${role.years})</p>
-                        <ul class="list-disc ml-6 text-sm">
-                            ${role.bullets.map(b => `<li>${b}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('')}
-                ${data.summary ? `<h3>Professional Summary</h3><p class="mt-1 text-sm">${data.summary}</p>` : ''}
-            `,
-            professional: (data) => `
-                <div class="mb-4 flex justify-between items-baseline border-b border-gray-400 pb-1">
-                    <h1 class="text-xl font-bold">${data.name || 'Your Name Here'}</h1>
-                    <p class="text-sm text-gray-600">${data.contact || 'Email | Phone | LinkedIn'}</p>
-                </div>
-                ${data.summary ? `<h3>Summary</h3><p class="mt-1 text-sm">${data.summary}</p>` : ''}
-                <h3>Experience</h3>
-                ${data.experience.map(role => `
-                    <div class="mt-3">
-                        <p class="font-semibold text-base">${role.title}</p>
-                        <p class="text-sm italic">${role.company}, ${role.years}</p>
-                        <ul class="list-disc ml-6 text-sm">
-                            ${role.bullets.map(b => `<li>${b}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('')}
-            `,
-            classic: (data) => `
-                <div class="text-center mb-4">
-                    <h1 class="text-2xl font-bold">${data.name || 'Your Name Here'}</h1>
-                    <p class="text-sm text-gray-700">${data.contact || 'Email / Phone / LinkedIn'}</p>
-                </div>
-                ${data.summary ? `<h3>-- SUMMARY --</h3><p class="mt-1 text-sm">${data.summary}</p>` : ''}
-                <h3>-- EXPERIENCE --</h3>
-                ${data.experience.map(role => `
-                    <div class="mt-3">
-                        <p class="font-bold">${role.title}, ${role.company}</p>
-                        <p class="text-xs italic mb-1">${role.years}</p>
-                        <ul class="list-disc ml-4 text-sm">
-                            ${role.bullets.map(b => `<li>${b}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('')}
-            `
-        };
-
-        function renderPreview(templateKey) {
-            const container = document.getElementById('remediated-content');
-            const data = appState.remediatedData;
-            
-            // Apply the new template class for CSS styling
-            container.className = `resume-template template-${templateKey}`;
-            
-            if (data && data.experience) {
-                // Render the selected template using the structured data
-                container.innerHTML = resumeTemplates[templateKey](data);
-                
-                // Update active template button appearance
-                document.querySelectorAll('.template-selector').forEach(btn => {
-                    const isSelected = btn.getAttribute('data-template') === templateKey;
-                    btn.classList.toggle('bg-indigo-50', isSelected);
-                    btn.classList.toggle('text-indigo-700', isSelected);
-                    btn.classList.toggle('border-indigo-400', isSelected);
-                    btn.classList.toggle('bg-gray-50', !isSelected);
-                    btn.classList.toggle('text-gray-700', !isSelected);
-                    btn.classList.toggle('border-gray-300', !isSelected);
-                });
-                
-            } else {
-                // Show placeholder if data hasn't loaded yet
-                container.innerHTML = `<div class="p-6 text-center text-gray-500 italic">Data not available. Please complete the process.</div>`;
-            }
-        }
-        
-        // --- Firebase Setup and Persistence ---
-
-        function getDocRef(docName) {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            // Path for private user data: /artifacts/{appId}/users/{userId}/resume_optimizer/{docName}
-            return doc(db, 'artifacts', appId, 'users', userId, 'resume_optimizer', docName);
-        }
-
-        async function saveAppState() {
-            if (!isAuthReady || !appState.critiqueData) return;
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
+        window.setupFirebase = async () => {
             try {
-                const stateToSave = {
-                    ...appState,
-                    // Save the full resume text for later use
-                    fullResumeText: appState.resumeText,
-                    // Store remediated data (structured) if it exists
-                    remediatedData: appState.remediatedData ? JSON.stringify(appState.remediatedData) : null,
-                    // Remove large text snippet to avoid confusion
-                    resumeText: appState.resumeText.substring(0, 100) + '...'
-                };
-                
-                await setDoc(getDocRef('session_data'), stateToSave);
-                // Update the visible progress indicator
-                const roleCount = appState.critiqueData.roles?.length || 0;
-                const roleProgress = Math.min(appState.roleIndex + 1, roleCount);
-                if (roleCount > 0 && appState.currentStage > 1) {
-                    document.getElementById('saved-role-index').textContent = roleProgress;
-                    document.getElementById('saved-total-roles').textContent = roleCount;
-                    document.getElementById('progress-indicator').classList.remove('hidden');
-                }
-                
-            } catch (error) {
-                console.error("Failed to save state to Firestore:", error);
-            }
-        }
-
-        async function loadAppState() {
-            if (!isAuthReady) return;
-            try {
-                const docSnap = await getDoc(getDocRef('session_data'));
-                if (docSnap.exists()) {
-                    const savedData = docSnap.data();
-
-                    // Check if data is meaningful (at least the critique has started)
-                    if (savedData.critiqueData && savedData.critiqueData.roles && savedData.critiqueData.roles.length > 0) {
-                        return savedData;
-                    }
-                }
-                return null;
-
-            } catch (error) {
-                console.warn("Failed to load state from Firestore, starting fresh:", error);
-                return null;
-            }
-        }
-        
-        function promptToResume(savedState) {
-            document.getElementById('resume-modal').classList.remove('hidden');
-
-            // Pre-fill the saved state information for the user
-            const roleCount = savedState.critiqueData.roles?.length || 0;
-            const roleProgress = Math.min(savedState.roleIndex + 1, roleCount);
-            
-            // Update modal text slightly to reflect progress
-            const resumeButton = document.getElementById('resume-session');
-            resumeButton.textContent = `Resume Role ${roleProgress} of ${roleCount}`;
-            
-            document.getElementById('start-new-session').onclick = () => {
-                document.getElementById('resume-modal').classList.add('hidden');
-                // State remains default, user starts at Stage 1. No need to clear Local Storage here
-                // as signInWithCustomToken takes care of persistence, but let's be explicit:
-                // We rely on the auth system handling persistence for the Anonymous UID.
-                document.getElementById('loading-indicator').classList.add('hidden');
-                updateMessage('success', 'Starting fresh session. Your previous work is safe but not loaded.', 8000);
-            };
-
-            resumeButton.onclick = () => {
-                document.getElementById('resume-modal').classList.add('hidden');
-                // Load the saved state into the app
-                Object.assign(appState, savedState);
-                
-                // Restore the full text for remediation later
-                appState.resumeText = savedState.fullResumeText || '';
-                
-                // Restore structured remediated data if it exists
-                if (savedState.remediatedData) {
-                    appState.remediatedData = JSON.parse(savedState.remediatedData);
-                }
-
-                // Restore UI for the critique summary (Stage 2)
-                document.getElementById('vocation-output').textContent = appState.critiqueData.vocation;
-                document.getElementById('macro-profile-output').textContent = appState.critiqueData.macro_profile;
-                document.getElementById('summary-critique-output').textContent = appState.critiqueData.summary_critique;
-                
-                // Show the progress indicator
-                document.getElementById('saved-role-index').textContent = roleProgress;
-                document.getElementById('saved-total-roles').textContent = roleCount;
-                document.getElementById('progress-indicator').classList.remove('hidden');
-                
-                // Jump to the correct stage
-                if (appState.currentStage === 2) {
-                    moveToStage(2);
-                    updateMessage('success', 'Welcome back! Reviewing analysis summary.', 8000);
-                } else if (appState.roleIndex < roleCount) {
-                    moveToStage(3); // Resume the interview
-                    updateMessage('success', `Welcome back! Resuming interview for Role ${roleProgress}.`, 8000);
-                } else {
-                    // All roles answered, jump to final generation stage (which now requires template rendering)
-                    moveToStage(4);
-                    renderPreview(appState.currentTemplate);
-                    updateMessage('success', 'All interview questions are complete. Review your draft.', 8000);
-                }
-                document.getElementById('loading-indicator').classList.add('hidden');
-            };
-        }
-
-        async function setupFirebase() {
-            document.getElementById('loading-message').textContent = 'Authenticating user...';
-            try {
+                // Parse required globals
                 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // Use local persistence for the user session
-                await setPersistence(auth, browserLocalPersistence);
-
                 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                isAuthReady = true;
 
-                // Attempt to load previous state after successful authentication
-                const savedState = await loadAppState();
-                if (savedState) {
-                    promptToResume(savedState);
-                } else {
-                    document.getElementById('loading-indicator').classList.add('hidden');
+                if (!firebaseConfig || !firebaseConfig.projectId) {
+                    console.error("Firebase Initialization Failed: 'projectId' not provided in firebase.initializeApp.");
+                    return;
                 }
+                
+                // Initialize services
+                const app = initializeApp(firebaseConfig);
+                window.auth = getAuth(app);
+                window.db = getFirestore(app);
+                
+                // Set Firestore log level for debugging
+                setLogLevel('error');
+
+                // Authentication Listener
+                onAuthStateChanged(window.auth, async (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        window.userIdDisplay.textContent = `User ID: ${window.userId}`;
+                        console.log(`Firebase authenticated. User ID set to: ${window.userId}`);
+                        // Once authenticated, attempt to load data for the current user
+                        await window.loadUserData(user.uid);
+                    } else {
+                        // Attempt to sign in if not already authenticated
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(window.auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(window.auth);
+                            }
+                        } catch (error) {
+                            console.error("Firebase Authentication Failed:", error);
+                        }
+                    }
+                });
 
             } catch (error) {
-                console.error("Firebase Initialization Failed:", error);
-                updateMessage('error', 'Authentication failed. Progress saving/loading will not be available.', 10000);
-                document.getElementById('loading-indicator').classList.add('hidden');
+                console.error("Error setting up Firebase:", error);
             }
-        }
-        
-        // --- Utility ---
+        };
 
-        // Utility function to safely update UI messages
-        function updateMessage(type, message, duration = 5000) {
-            const box = document.getElementById('message-box');
-            box.textContent = message;
-            box.className = `mt-4 p-3 rounded-lg text-sm transition duration-300 ${type === 'error' ? 'text-red-700 bg-red-100' : 'text-green-700 bg-green-100'}`;
-            box.style.display = 'block';
-            if (type === 'success') {
-                setTimeout(() => box.style.display = 'none', duration);
+        /**
+         * Generic API Call with exponential backoff and required headers.
+         */
+        window.apiCall = async (action, data = {}, retries = 3) => {
+            if (!window.userId) {
+                throw new Error("API call failed: User ID is not available (Authentication pending or failed).");
             }
-        }
-        
-        // --- API & Core Logic ---
+            
+            const payload = {
+                action: action,
+                ...data
+            };
 
-        // Function for API Gateway URL, now using the actual endpoint
-        function getApiGatewayUrl() {
-            // Using the actual Lambda API Gateway URL provided by the user.
-            return 'https://4opc01m1af.execute-api.us-east-2.amazonaws.com/';
-        }
-
-        // Centralized fetch utility with backoff and error handling (similar to Python Lambda)
-        async function apiCall(action, body) {
-            const apiEndpoint = typeof __api_endpoint !== 'undefined' ? __api_endpoint : getApiGatewayUrl(); // Use Canvas provided endpoint if available
-            const maxAttempts = 4;
-            const baseDelay = 1000; // 1 second
-
-            document.getElementById('loading-indicator').classList.remove('hidden');
-            document.getElementById('message-box').style.display = 'none'; // Clear messages on new call
-
-            for (let attempts = 0; attempts < maxAttempts; attempts++) {
+            for (let i = 0; i < retries; i++) {
                 try {
-                    const response = await fetch(apiEndpoint, {
+                    const response = await fetch(window.apiEndpoint, {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
-                            'X-User-Id': userId // Pass the authenticated UID
+                            'X-User-Id': window.userId // CRITICAL FIX: Ensure header is included
                         },
-                        body: JSON.stringify({ action, ...body })
+                        body: JSON.stringify(payload)
                     });
 
-                    document.getElementById('loading-indicator').classList.add('hidden');
-
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        // Throw error for non-200 HTTP codes
-                        throw new Error(`API returned status ${response.status}: ${errorText}`);
+                        const errorBody = await response.json().catch(() => ({ message: 'No detailed error message.' }));
+                        throw new Error(`API returned status ${response.status}: ${JSON.stringify(errorBody)}`);
                     }
 
                     return await response.json();
 
                 } catch (error) {
-                    document.getElementById('loading-indicator').classList.add('hidden');
-                    console.error(`Attempt ${attempts + 1} failed:`, error);
-                    
-                    if (attempts < maxAttempts - 1) {
-                        const delay = baseDelay * Math.pow(2, attempts) + Math.random() * 500;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
+                    console.warn(`Attempt ${i + 1} failed: ${error}`);
+                    if (i === retries - 1) {
                         throw error;
                     }
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
-        }
+        };
         
-        // --- File Upload Logic ---
+        // Expose function to global scope
+        window.setupFirebase();
 
-        async function handleFileUpload(file) {
-            if (!pdfjsLib || !pdfjsLib.getDocument) {
-                throw new Error('PDF processing library not fully initialized. Please try pasting text instead.');
-            }
-            if (file.type !== 'application/pdf') {
-                throw new Error('Unsupported file type. Please upload a PDF file.');
+        /**
+         * Main function to start the critique process (Stage 1).
+         */
+        window.startCritique = async () => {
+            const resumeTextarea = document.getElementById('resume-text');
+            const resumeText = resumeTextarea.value.trim();
+            const button = document.getElementById('critique-button');
+            const buttonContent = button.innerHTML;
+
+            if (resumeText.length < 50) {
+                alert('Please paste a substantial portion of your resume (at least 50 characters).');
+                return;
             }
 
-            const reader = new FileReader();
-            const data = await new Promise((resolve, reject) => {
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
+            button.disabled = true;
+            button.innerHTML = '<div class="spinner"></div> Processing...';
+            
+            try {
+                const response = await window.apiCall('upload_and_critique', { resumeText });
+                
+                // Save the initial state to the database for persistence across sessions (optional but good practice)
+                const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
+                await setDoc(docRef, { 
+                    status: window.STATUS_CRITIQUE_READY,
+                    resumeText: resumeText,
+                    critique: response.summary_critique,
+                    questions: JSON.stringify(response.roles),
+                    vocation: response.vocation || 'Professional',
+                    createdAt: Date.now()
+                }, { merge: true });
+
+                window.loadCritique(response);
+
+            } catch (error) {
+                console.error("Critique initiation failed:", error);
+                alert(`Failed to start critique: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = buttonContent;
+            }
+        };
+        
+        /**
+         * Renders the Critique and Questions (Stage 2).
+         */
+        window.loadCritique = (data) => {
+            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
+            document.getElementById('stage2-card').classList.add('stage-active');
+            
+            // Populate Stage 2
+            const critiqueHtml = `
+                <h2 class="text-xl font-bold mb-3 text-emerald-700">Vocation Profile: ${data.vocation || 'Professional'}</h2>
+                <h3 class="text-lg font-semibold mb-2">Macro Profile</h3>
+                <p class="mb-4 text-gray-700">${data.macro_profile || 'No macro profile provided.'}</p>
+                <h3 class="text-lg font-semibold mb-4">Summary Critique:</h3>
+                <div class="p-3 bg-red-50 border border-red-200 rounded-lg mb-6 text-red-700">
+                    ${data.summary_critique || 'No summary critique provided.'}
+                </div>
+            `;
+            
+            const roles = JSON.parse(data.questions || '[]');
+            let questionsHtml = '<h3 class="text-xl font-bold mb-4">Interrogation Stage: Turn Duties into Achievements</h3>';
+            questionsHtml += '<div id="interrogation-form">';
+
+            roles.forEach((role, index) => {
+                questionsHtml += `
+                    <div class="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">${role.title} at ${role.company}</h4>
+                        <p class="text-sm text-gray-500 mb-3">Answer these questions to add quantifiable results to this role:</p>
+                        ${role.role_questions.map((q, qIndex) => `
+                            <div class="mb-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">${q}</label>
+                                <textarea id="answer-${index}-${qIndex}" rows="2" class="input-text resize-none" placeholder="e.g., I reduced database query time by 60% by optimizing the indexing strategy..."></textarea>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
             });
 
-            const pdfDocument = await pdfjsLib.getDocument({ data }).promise;
-            let fullText = '';
+            questionsHtml += `</div>
+                <button id="remediate-button" onclick="window.remediateAndPreview()" class="btn-primary w-full mt-4">
+                    Generate Optimized Resume Preview (Stage 3)
+                </button>
+            `;
 
-            for (let i = 1; i <= pdfDocument.numPages; i++) {
-                const page = await pdfDocument.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n\n';
-            }
+            window.stage2Content.innerHTML = critiqueHtml + questionsHtml;
+            window.stage1Content.style.display = 'none';
+            window.stage2Content.style.display = 'block';
+            window.stage3Content.style.display = 'none';
+            window.stage4Content.style.display = 'none';
+        };
 
-            if (fullText.trim().length < 50) {
-                 throw new Error('Could not extract enough readable text from the PDF. Please try pasting the text instead.');
-            }
-            return fullText;
-        }
-
-
-        // --- Stage 1 Handlers (Critique) ---
-
-        async function startCritique() {
-            const resumeTextarea = document.getElementById('resume-text');
-            const fileInput = document.getElementById('resume-file');
+        /**
+         * Collects answers and requests the final preview (Stage 3).
+         */
+        window.remediateAndPreview = async () => {
+            const button = document.getElementById('remediate-button');
+            button.disabled = true;
+            button.innerHTML = '<div class="spinner"></div> Generating Preview...';
             
-            const pastedText = resumeTextarea.value.trim();
-            const uploadedFile = fileInput.files[0];
+            // 1. Get current role questions from Firestore
+            const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) {
+                 alert("Session data lost. Please start over.");
+                 return;
+            }
+            const data = docSnap.data();
+            const roles = JSON.parse(data.questions);
 
-            let resumeText = '';
+            // 2. Collect user answers
+            const userAnswers = [];
+            roles.forEach((role, rIndex) => {
+                const roleAnswers = [];
+                // Collect answers for this specific role
+                for (let qIndex = 0; qIndex < role.role_questions.length; qIndex++) {
+                    const answerId = `answer-${rIndex}-${qIndex}`;
+                    const answerText = document.getElementById(answerId).value.trim();
+                    if (answerText) {
+                         roleAnswers.push(answerText);
+                    }
+                }
 
-            if (uploadedFile) {
-                document.getElementById('loading-message').textContent = 'Extracting text from PDF...';
-                try {
-                    resumeText = await handleFileUpload(uploadedFile);
-                } catch (error) {
-                    updateMessage('error', `File extraction failed: ${error.message}`);
-                    console.error("File Extraction Error:", error);
-                    document.getElementById('loading-indicator').classList.add('hidden');
+                if (roleAnswers.length > 0) {
+                     userAnswers.push({
+                        role: role.title,
+                        company: role.company,
+                        user_response: roleAnswers.join('. ') // Combine all answers for the role
+                    });
+                }
+            });
+
+            if (userAnswers.length === 0) {
+                alert("Please answer at least a few questions before proceeding.");
+                button.disabled = false;
+                button.innerHTML = 'Generate Optimized Resume Preview (Stage 3)';
+                return;
+            }
+
+            try {
+                // 3. Call API to get final optimized content
+                const response = await window.apiCall('remediate_and_preview', { 
+                    userAnswers: JSON.stringify(userAnswers) // Send the structured array as a string
+                });
+                
+                // 4. Update Firestore with new status and content
+                await updateDoc(docRef, { 
+                    status: window.STATUS_PREVIEW_READY,
+                    userAnswers: JSON.stringify(userAnswers),
+                    previewContent: response.preview_content,
+                    updatedAt: Date.now()
+                });
+
+                window.loadPreview(JSON.parse(response.preview_content));
+
+            } catch (error) {
+                console.error("Remediation failed:", error);
+                alert(`Failed to generate preview: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Generate Optimized Resume Preview (Stage 3)';
+            }
+        };
+
+        /**
+         * Renders the final optimized preview (Stage 3).
+         */
+        window.loadPreview = (optimizedData) => {
+            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
+            document.getElementById('stage3-card').classList.add('stage-active');
+
+            const experienceHtml = optimizedData.experience.map(role => `
+                <div class="mb-4">
+                    <h4 class="font-bold text-lg">${role.title}</h4>
+                    <p class="text-sm text-gray-500 mb-2">${role.company} | ${role.years}</p>
+                    <ul class="list-disc ml-5 space-y-1 text-gray-700">
+                        ${role.bullets.map(b => `<li>${b}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+
+            const previewHtml = `
+                <div class="p-6 bg-white border border-emerald-500 rounded-xl shadow-lg">
+                    <div class="text-center mb-6">
+                        <h1 class="text-3xl font-extrabold text-gray-900">${optimizedData.name}</h1>
+                        <p class="text-sm text-gray-500">${optimizedData.contact}</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h2 class="text-xl font-bold border-b-2 border-emerald-500 pb-1 mb-2 text-emerald-700">PROFESSIONAL SUMMARY</h2>
+                        <p class="text-gray-700">${optimizedData.summary}</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h2 class="text-xl font-bold border-b-2 border-emerald-500 pb-1 mb-3 text-emerald-700">EXPERIENCE</h2>
+                        ${experienceHtml}
+                    </div>
+
+                    <p class="text-center text-sm text-gray-500 mt-6 italic">
+                        (Skills and Education sections omitted in this preview for brevity.)
+                    </p>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button id="purchase-button" onclick="window.completePurchase()" class="btn-primary text-lg px-8 py-3">
+                        Mock Purchase / Free Download (Stage 4)
+                    </button>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Note: This is a beta test. You get one free download per session.
+                    </p>
+                </div>
+            `;
+            
+            window.stage3Content.innerHTML = previewHtml;
+            window.stage1Content.style.display = 'none';
+            window.stage2Content.style.display = 'none';
+            window.stage3Content.style.display = 'block';
+            window.stage4Content.style.display = 'none';
+        };
+
+        /**
+         * Mock payment complete and final download (Stage 4).
+         */
+        window.completePurchase = async () => {
+            const button = document.getElementById('purchase-button');
+            button.disabled = true;
+            button.innerHTML = '<div class="spinner"></div> Finalizing Download...';
+
+            try {
+                const response = await window.apiCall('purchase_complete');
+                
+                if (response.status === 'LIMIT_EXCEEDED') {
+                    alert(response.message);
                     return;
                 }
-            } else if (pastedText) {
-                resumeText = pastedText;
-            } else {
-                updateMessage('error', 'Please upload a PDF file OR paste your resume text to begin the analysis.');
-                return;
-            }
 
-            appState.resumeText = resumeText;
-            document.getElementById('loading-message').textContent = 'Analyzing resume...';
+                // Update Firestore to reflect final status
+                const docRef = doc(window.db, "artifacts", window.appId, "users", window.userId, "sessions", "current");
+                await updateDoc(docRef, { status: window.STATUS_PAID_FINAL_READY, updatedAt: Date.now() });
 
-            try {
-                const response = await apiCall('upload_and_critique', { resumeText });
-                
-                let critiqueData = response;
-
-                if (!critiqueData || !critiqueData.vocation) {
-                    const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`API returned an unexpected structure. Expected a JSON object with 'vocation', but received: ${receivedPayload}.`);
-                }
-
-                appState.critiqueData = critiqueData;
-
-                // Save key data globally
-                appState.vocation = appState.critiqueData.vocation;
-                appState.roleIndex = 0; // Reset role index for the interview stage
-                appState.allAnswers = []; // Clear previous answers
-
-                // Update Stage 2 UI
-                document.getElementById('vocation-output').textContent = appState.critiqueData.vocation;
-                document.getElementById('macro-profile-output').textContent = appState.critiqueData.macro_profile;
-                document.getElementById('summary-critique-output').textContent = appState.critiqueData.summary_critique;
-                
-                updateMessage('success', 'Analysis complete! Review the summary and start the guided interview.');
-                saveAppState(); // Save state after successful critique
-                moveToStage(2);
+                window.loadFinalDocument(JSON.parse(response.final_document_content));
 
             } catch (error) {
-                updateMessage('error', `Critique failed: ${error.message}`);
-                console.error("Critique Error:", error);
+                console.error("Purchase/Download failed:", error);
+                alert(`Failed to complete transaction: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Mock Purchase / Free Download (Stage 4)';
             }
-        }
-        
-        // --- Stage Navigation ---
+        };
 
-        function moveToStage(stageNumber) {
-            const stages = [1, 2, 3, 4];
-            stages.forEach(s => {
-                const element = document.getElementById(`stage-${s}`);
-                if (s === stageNumber) {
-                    element.classList.remove('hidden-stage');
+        /**
+         * Renders the final downloadable document (Stage 4).
+         */
+        window.loadFinalDocument = (optimizedData) => {
+            document.querySelectorAll('.step-card').forEach(el => el.classList.remove('stage-active'));
+            document.getElementById('stage4-card').classList.add('stage-active');
+            
+            const markdownContent = `
+**${optimizedData.name}** | ${optimizedData.contact}
+
+---
+
+## PROFESSIONAL SUMMARY
+${optimizedData.summary}
+
+---
+
+## PROFESSIONAL EXPERIENCE
+${optimizedData.experience.map(role => 
+    `### ${role.title}
+*${role.company}* | ${role.years}
+${role.bullets.map(b => `* ${b}`).join('\n')}`
+).join('\n\n')}
+
+---
+*(Note: Skills and Education sections can be easily added to this format.)*
+`;
+
+            const finalHtml = `
+                <div class="p-6 bg-white border border-emerald-500 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-emerald-700">🎉 Download Complete!</h2>
+                    <p class="mb-4">Your final, achievement-driven resume content is ready. You can copy the content below or download it as a text file.</p>
+                    
+                    <textarea id="final-markdown" class="input-text h-96 bg-gray-50 p-4 font-mono text-sm" readonly>${markdownContent}</textarea>
+                    
+                    <button onclick="window.copyToClipboard('final-markdown')" class="btn-primary mt-4">
+                        Copy Final Content
+                    </button>
+                    <button onclick="window.downloadFile(markdownContent)" class="btn-primary mt-4 ml-2">
+                        Download .txt File
+                    </button>
+                </div>
+            `;
+            
+            window.stage4Content.innerHTML = finalHtml;
+            window.stage1Content.style.display = 'none';
+            window.stage2Content.style.display = 'none';
+            window.stage3Content.style.display = 'none';
+            window.stage4Content.style.display = 'block';
+        };
+
+        /**
+         * Load user data on authentication to resume session.
+         */
+        window.loadUserData = async (uid) => {
+            if (!window.db) return;
+            const docRef = doc(window.db, "artifacts", window.appId, "users", uid, "sessions", "current");
+
+            // Use onSnapshot to listen for real-time updates (optional, but good practice)
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("Resuming session. Status:", data.status);
+                    
+                    switch (data.status) {
+                        case window.STATUS_CRITIQUE_READY:
+                            window.stage1Content.style.display = 'none';
+                            window.loadCritique({ 
+                                vocation: data.vocation, 
+                                macro_profile: 'Resumed session.', 
+                                summary_critique: data.critique, 
+                                questions: data.questions 
+                            });
+                            break;
+                        case window.STATUS_PREVIEW_READY:
+                            window.stage1Content.style.display = 'none';
+                            window.stage2Content.style.display = 'none';
+                            window.loadPreview(JSON.parse(data.previewContent));
+                            break;
+                        case window.STATUS_PAID_FINAL_READY:
+                            window.stage1Content.style.display = 'none';
+                            window.stage2Content.style.display = 'none';
+                            window.stage3Content.style.display = 'none';
+                            window.loadFinalDocument(JSON.parse(data.previewContent));
+                            break;
+                        default:
+                            // Stay in Stage 1
+                            window.stage1Content.style.display = 'block';
+                    }
                 } else {
-                    element.classList.add('hidden-stage');
+                    // Start in Stage 1
+                    window.stage1Content.style.display = 'block';
                 }
+            }, (error) => {
+                console.error("Error loading session data:", error);
             });
-            appState.currentStage = stageNumber;
-            document.getElementById('app-container').scrollIntoView({ behavior: 'smooth' });
-
-            if (stageNumber === 3) {
-                renderCurrentRoleInterview();
-            } else if (stageNumber === 4) {
-                // Ensure the template preview is rendered when entering Stage 4
-                renderPreview(appState.currentTemplate);
-            }
-        }
-
-
-        // --- Stage 2 & 3 Handlers (Interview) ---
-
-        function renderCurrentRoleInterview() {
-            const { roles } = appState.critiqueData;
-            const currentRole = roles[appState.roleIndex];
-            
-            if (!currentRole) {
-                // If no more roles, move to the final preview stage
-                startRemediation();
-                return;
-            }
-
-            // Update Stage 3 UI elements
-            document.getElementById('current-role-index').textContent = appState.roleIndex + 1;
-            document.getElementById('total-roles').textContent = roles.length;
-            document.getElementById('current-role-title').textContent = `${currentRole.title} at ${currentRole.company}`;
-            document.getElementById('role-answers').value = ''; // Clear previous answer box
-
-            // Inject the targeted questions
-            const questionsContainer = document.getElementById('role-questions-container');
-            questionsContainer.innerHTML = currentRole.role_questions.map((q, i) => 
-                `<div class="flex items-start">
-                    <span class="text-indigo-500 font-bold mr-2">${i + 1}.</span>
-                    <p class="text-gray-700">${q}</p>
-                </div>`
-            ).join('');
-        }
-
-        function submitRoleAnswers() {
-            const answers = document.getElementById('role-answers').value.trim();
-            if (!answers) {
-                updateMessage('error', 'Please provide detailed answers to the questions above before continuing.');
-                return;
-            }
-
-            const currentRole = appState.critiqueData.roles[appState.roleIndex];
-            
-            // Package the answers with context
-            appState.allAnswers.push({
-                role: currentRole.title,
-                company: currentRole.company,
-                questions: currentRole.role_questions,
-                user_response: answers
-            });
-            
-            // Move to the next role or the final stage
-            appState.roleIndex++;
-            if (appState.roleIndex < appState.critiqueData.roles.length) {
-                updateMessage('success', `Answers for Role ${appState.roleIndex} saved. Moving to the next role...`);
-                saveAppState(); // Save state after submitting each role answer
-                renderCurrentRoleInterview(); // Renders the next role's questions
-            } else {
-                updateMessage('success', 'All roles reviewed! Generating your optimized draft now...');
-                saveAppState(); // Save state one last time before remediation starts
-                startRemediation(); // All roles done, generate final draft
-            }
-        }
-
-
-        // --- Stage 4 Handlers (Remediation) ---
-
-        async function startRemediation() {
-            document.getElementById('loading-message').textContent = 'Generating optimized and structured content...';
-            document.getElementById('progress-indicator').classList.add('hidden'); // Hide progress when generating final
-
-            // Compile all necessary data for the remediation API call
-            const remediationBody = {
-                userAnswers: JSON.stringify(appState.allAnswers), // Send structured answers
-                critique: appState.critiqueData.summary_critique, // Send summary critique
-                vocation: appState.vocation
-            };
-
-            try {
-                const response = await apiCall('remediate_and_preview', remediationBody);
-                
-                let remediatedData = response.preview_content;
-                
-                // Ensure the response is valid JSON that can be parsed
-                if (typeof remediatedData === 'string') {
-                    remediatedData = JSON.parse(remediatedData);
-                }
-
-                if (!remediatedData || !remediatedData.experience) {
-                    const receivedPayload = JSON.stringify(response, null, 2) || 'null/undefined response';
-                    throw new Error(`API returned an unexpected structure for remediation. Expected a structured JSON object, but received: ${receivedPayload}.`);
-                }
-
-                // Store the structured data
-                appState.remediatedData = remediatedData;
-                
-                updateMessage('success', 'Draft ready! Review your new impact-focused bullet points.');
-                saveAppState(); // Save structured data to state
-                moveToStage(4);
-                // renderPreview() is called automatically by moveToStage(4)
-
-            } catch (error) {
-                updateMessage('error', `Remediation failed: ${error.message}`);
-                console.error("Remediation Error:", error);
-                // Fall back to critique stage if remediation fails, but log the error
-                moveToStage(2); 
-            }
-        }
+        };
         
-        function downloadResume() {
-            if (!appState.remediatedData || !appState.remediatedData.experience) {
-                updateMessage('error', 'No optimized draft available to download. Please complete the interview first.', 5000);
-                return;
-            }
+        // Utility Functions (outside module imports)
+        window.copyToClipboard = (elementId) => {
+            const copyText = document.getElementById(elementId);
+            copyText.select();
+            document.execCommand('copy');
+            alert('Content copied to clipboard!');
+        };
 
-            const data = appState.remediatedData;
-            const template = appState.currentTemplate;
-            const fileName = `Optimized_Resume_${template}.txt`;
-            
-            // Generate a simple, clean text version suitable for copy/paste into a word processor
-            let textContent = '';
+        window.downloadFile = (content) => {
+             const element = document.createElement('a');
+             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+             element.setAttribute('download', 'optimized_resume.txt');
+             element.style.display = 'none';
+             document.body.appendChild(element);
+             element.click();
+             document.body.removeChild(element);
+        };
 
-            // 1. Contact Info
-            textContent += `${data.name || 'Your Name Here'}\n`;
-            textContent += `${data.contact || 'Email | Phone | LinkedIn'}\n\n`;
-
-            // 2. Summary
-            if (data.summary) {
-                textContent += `SUMMARY\n`;
-                textContent += `${data.summary}\n\n`;
-            }
-
-            // 3. Experience
-            textContent += `PROFESSIONAL EXPERIENCE\n`;
-            data.experience.forEach(role => {
-                textContent += `\n${role.title} at ${role.company} (${role.years})\n`;
-                role.bullets.forEach(bullet => {
-                    textContent += `• ${bullet}\n`;
-                });
-            });
-
-            // Create a Blob and initiate download
-            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            updateMessage('success', `Your optimized resume has been downloaded as "${fileName}".`, 8000);
-        }
-        
-        // --- Event Listeners and Initialization ---
-
-        // Stage 1 Button: Analyze and Start Guided Review
-        const analyzeButton = document.getElementById('analyze-button');
-        if (analyzeButton) {
-            analyzeButton.addEventListener('click', startCritique);
-        }
-        
-        // Stage 2 Button: Continue to Role Breakdown & Interview
-        const continueButton = document.getElementById('continue-interview-button');
-        if (continueButton) {
-            continueButton.addEventListener('click', () => moveToStage(3));
-        }
-        
-        // Stage 3 Button: Submit Answers for This Role & Continue
-        const submitButton = document.getElementById('submit-role-button');
-        if (submitButton) {
-            submitButton.addEventListener('click', submitRoleAnswers);
-        }
-
-        // Stage 4 Button: Download
-        const downloadButton = document.getElementById('download-button');
-        if (downloadButton) {
-            downloadButton.addEventListener('click', downloadResume);
-        }
-        
-        // Stage 4 Template Selectors
-        document.querySelectorAll('.template-selector').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const newTemplate = e.target.getAttribute('data-template');
-                appState.currentTemplate = newTemplate;
-                renderPreview(newTemplate);
-            });
-        });
-        
-        // Start the Firebase setup and state loading process
-        document.addEventListener('DOMContentLoaded', setupFirebase);
     </script>
+    <!-- End of Global Script Block -->
+
+    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">
+        Career Catalyst: Resume Optimizer
+    </h1>
+    <div class="text-center mb-6 p-2 bg-gray-100 rounded-lg text-sm text-gray-500">
+        <span id="user-id-display">Initializing User...</span>
+    </div>
+
+    <!-- Main Stages Container -->
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Stage Steps Indicator -->
+        <div class="flex justify-between items-center mb-8 text-sm font-medium">
+            <div id="stage1-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200 stage-active">1. Upload Draft</div>
+            <div id="stage2-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200">2. Interrogate</div>
+            <div id="stage3-card" class="step-card bg-white p-4 text-center w-1/4 mr-2 border border-gray-200">3. Preview</div>
+            <div id="stage4-card" class="step-card bg-white p-4 text-center w-1/4 border border-gray-200">4. Download</div>
+        </div>
+
+        <!-- Stage 1: Upload and Critique -->
+        <div id="stage1-content" class="bg-white p-6 rounded-xl shadow-md">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Stage 1: Paste Your Resume Draft</h2>
+            <p class="mb-4 text-gray-600">Paste your current resume draft into the box below. We will use AI to critique it and generate targeted questions to turn your job duties into quantifiable achievements.</p>
+            <textarea id="resume-text" rows="10" class="input-text mb-4 resize-none" placeholder="Paste your resume content here..."></textarea>
+            <button id="critique-button" onclick="startCritique()" class="btn-primary w-full text-lg">
+                Start Critique & Interrogation (Stage 2)
+            </button>
+        </div>
+
+        <!-- Stage 2: Interrogation (Critique and Questions) -->
+        <div id="stage2-content" class="bg-white p-6 rounded-xl shadow-md hidden">
+            <!-- Content dynamically loaded by loadCritique() -->
+        </div>
+
+        <!-- Stage 3: Preview -->
+        <div id="stage3-content" class="bg-white p-6 rounded-xl shadow-md hidden">
+            <!-- Content dynamically loaded by loadPreview() -->
+        </div>
+
+        <!-- Stage 4: Download -->
+        <div id="stage4-content" class="bg-white p-6 rounded-xl shadow-md hidden">
+            <!-- Content dynamically loaded by loadFinalDocument() -->
+        </div>
+        
+    </div>
 </body>
 </html>
