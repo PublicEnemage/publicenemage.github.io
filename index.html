@@ -113,7 +113,23 @@
         window.userId = null; 
         window.isAuthReady = false; 
 
-        const API_ENDPOINT = "https://your-api-gateway-url/prod/process"; // Placeholder - Replace with actual URL
+        // NOTE: MOCK FIREBASE CONFIGURATION & API ENDPOINT
+        // This is a mock config to prevent the initialization error when environment variables are missing.
+        // REPLACE with your actual Firebase config JSON if provided by your environment.
+        const MOCK_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyCTqR2Rv8BhYB2Cq9GyvoU5YPRc8XzQKVU",
+            authDomain: "careercatalyst-5c871.firebaseapp.com",
+            projectId: "careercatalyst-5c871",
+            storageBucket: "careercatalyst-5c871.firebasestorage.app",
+            messagingSenderId: "69210472141",
+            appId: "1:69210472141:web:7cbbc6a9b1da2252b2f384",
+            measurementId: "G-91PHFKMYJ4"
+        };
+
+        // NOTE: MOCK API ENDPOINT
+        // This must be replaced with the actual URL of your AWS API Gateway endpoint
+        const API_ENDPOINT = "https://4opc01m1af.execute-api.us-east-2.amazonaws.com/"; 
+
 
         // --- CORE UTILITIES ---
 
@@ -135,7 +151,8 @@
             const spinner = document.getElementById(`s${stage}-loading`);
             
             if (button && spinner) {
-                button.disabled = isLoading || !window.isAuthReady;
+                // Ensure button remains disabled if not authenticated
+                button.disabled = isLoading || !window.isAuthReady; 
                 spinner.classList.toggle('hidden', !isLoading);
                 button.innerHTML = isLoading 
                     ? `<div class="spinner mr-2"></div> ${stage === 1 ? 'Critiquing...' : stage === 2 ? 'Optimizing...' : 'Processing...'}`
@@ -151,8 +168,7 @@
          */
         window.apiCall = async (action, body) => {
             if (!window.userId) {
-                // This is the critical gate check that solves the second error.
-                // It ensures Firebase auth has completed before sending the request.
+                // Critical gate check: Prevents API call if user ID is not available
                 throw new Error("API call failed: User ID is not available (Authentication pending or failed).");
             }
 
@@ -167,6 +183,11 @@
                 },
                 body: JSON.stringify(payload),
             });
+            
+            // --- Basic Error Handling for Mock API ---
+            if (API_ENDPOINT.includes("your-api-gateway-url")) {
+                throw new Error("API call failed: Please update the 'API_ENDPOINT' with your actual AWS API Gateway URL.");
+            }
 
             const data = await response.json();
             
@@ -177,19 +198,36 @@
             return data;
         };
 
-        // --- FIREBASE INITIALIZATION & AUTHENTICATION (FIXED) ---
+        // --- FIREBASE INITIALIZATION & AUTHENTICATION (Using Mock Config) ---
         
         window.setupFirebase = () => {
             try {
-                // 1. Load config safely (FIX for 'projectId' not provided)
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                // Check if environment config is provided (prefer environment variables)
+                const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
                 const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 
-                if (!firebaseConfig || !firebaseConfig.projectId) {
-                    console.error("Firebase Initialization Failed: '__firebase_config' is missing or malformed.");
-                    document.getElementById('auth-status-display').textContent = 'Config Error';
-                    return;
+                let firebaseConfig = MOCK_FIREBASE_CONFIG; // Start with mock
+                let usingMock = true;
+
+                // Attempt to override mock config if environment variables are valid
+                if (rawConfig && rawConfig.trim()) {
+                    try {
+                        const envConfig = JSON.parse(rawConfig);
+                        if (envConfig && envConfig.projectId) {
+                            firebaseConfig = envConfig;
+                            usingMock = false;
+                        }
+                    } catch (e) {
+                        console.warn("Could not parse __firebase_config, falling back to mock.");
+                    }
                 }
+
+                if (usingMock) {
+                    document.getElementById('auth-status-display').textContent = 'MOCK CONFIG';
+                    document.getElementById('auth-status-display').className = 'text-orange-500 font-bold';
+                    console.warn("Using MOCK Firebase Config. This is sufficient for auth, but may not connect to real services.");
+                }
+
 
                 // 2. Initialize App
                 app = initializeApp(firebaseConfig);
@@ -204,7 +242,8 @@
                         document.getElementById('user-id-display').textContent = user.uid;
                         document.getElementById('auth-status-display').textContent = 'Connected';
                         document.getElementById('auth-status-display').className = 'text-green-600';
-                        document.getElementById('critique-button').disabled = false; // Enable button now that auth is ready
+                        // Only enable the button AFTER authentication is confirmed
+                        document.getElementById('critique-button').disabled = false; 
                         console.log(`Firebase Auth Ready. User ID: ${window.userId}`);
                     } else {
                         // User signed out, or initial sign-in attempt failed.
@@ -227,7 +266,7 @@
                 });
 
             } catch (e) {
-                console.error("Firebase Initialization Failed:", e);
+                console.error("Firebase Initialization Failed (General Error):", e);
                 document.getElementById('auth-status-display').textContent = 'Init Error';
             }
         };
@@ -236,11 +275,11 @@
 
         function navigateToStage(stage) {
             document.querySelectorAll('[id^="stage-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`stage-${stage}-critique`).classList.remove('hidden');
             
             document.querySelectorAll('[id^="nav-"]').forEach(el => el.classList.remove('font-bold', 'text-blue-600'));
             document.getElementById(`nav-${stage}`).classList.add('font-bold', 'text-blue-600');
             
+            if (stage === 1) document.getElementById('stage-1-critique').classList.remove('hidden');
             if (stage === 2) document.getElementById('stage-2-interrogation').classList.remove('hidden');
             if (stage === 3) document.getElementById('stage-3-download').classList.remove('hidden');
         }
